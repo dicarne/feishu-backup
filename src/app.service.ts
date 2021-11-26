@@ -102,6 +102,7 @@ export class AppService {
     const apptoken = await this.app_login()
     const user_access = (await this.user_login(code, apptoken)).access_token
     const root = await this.get_root_folder(user_access)
+    zipfile.file("__user_token__", user_access)
     await this._r_docs_in_folder(root.token, user_access, zipfile)
     return await zipfile.generateAsync({ type: 'blob' })
   }
