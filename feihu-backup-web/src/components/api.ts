@@ -66,7 +66,9 @@ export interface WikiNodeList {
 
 export class FeishuService {
     convert = true
-    constructor() {
+    downloadingCallback?: (file: string) => void
+    constructor(downloadingCallback?: (file: string) => void) {
+        this.downloadingCallback = downloadingCallback
     }
 
     async get_root_folder(user_token: string): Promise<RootFolder> {
@@ -140,6 +142,7 @@ export class FeishuService {
 
                 if (this.convert) zipfile.file(file.name + ".md", (await convert.convert(user_access, zipfile, fileobj)).file)
                 else zipfile.file(file.name + ".json", file_content)
+                this.downloadingCallback?.(file.name)
             } else if (file.type === 'folder') {
                 const fzip = zipfile.folder(file.name)
                 await this._r_docs_in_folder(file.token, user_access, fzip!, convert)
@@ -195,6 +198,7 @@ export class FeishuService {
 
                 if (this.convert) zipfile.file(node.title + ".md", (await convert.convert(user_access, zipfile, fileobj)).file)
                 else zipfile.file(node.title + ".json", file_content)
+                this.downloadingCallback?.(node.title)
             } else {
                 console.warn("Not Impl doc type: " + node.obj_type)
             }
