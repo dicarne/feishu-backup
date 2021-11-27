@@ -41,7 +41,7 @@ export interface WikiRecord {
 export interface WikiList {
     items: WikiRecord[]
     has_more: boolean
-    msg: string
+    page_token: string
 }
 
 export interface NodeRecord {
@@ -150,30 +150,46 @@ export class FeishuService {
         }
     }
 
-    async get_wiki_list(user_token: string): Promise<WikiList> {
-        let r = await axios.get(`api/wiki/v2/spaces?page_size=10`, {
+    async get_wiki_list(user_token: string, page_token?: string): Promise<WikiRecord[]> {
+        let r = await axios.get(`api/wiki/v2/spaces?page_size=10${page_token ? '&page_token=' + page_token : ''}`, {
             headers: {
                 "Authorization": `Bearer ${user_token}`
             }
         })
-        return r.data.data
+        const d = r.data.data as WikiList
+        let list = d.items
+        if (d.has_more) {
+            list = [...list, ...await this.get_wiki_list(user_token, d.page_token)]
+        }
+        return list
     }
 
-    async get_wiki_nodes_root(user_token: string, space_id: string): Promise<WikiNodeList> {
-        let r = await axios.get(`api/wiki/v2/spaces/${space_id}/nodes?page_size=50`, {
+    async get_wiki_nodes_root(user_token: string, space_id: string, page_token?: string): Promise<NodeRecord[]> {
+        let r = await axios.get(`api/wiki/v2/spaces/${space_id}/nodes?page_size=50${page_token ? '&page_token=' + page_token : ''}`, {
             headers: {
                 "Authorization": `Bearer ${user_token}`
             }
         })
-        return r.data.data
+        const d = r.data.data as WikiNodeList
+        let list = d.items
+        if (d.has_more) {
+            list = [...list, ...await this.get_wiki_nodes_root(user_token, space_id, d.page_token)]
+        }
+        return list
     }
-    async get_wiki_nodes(user_token: string, space_id: string, parent_node: string): Promise<WikiNodeList> {
-        let r = await axios.get(`api/wiki/v2/spaces/${space_id}/nodes?page_size=50&parent_node_token=${parent_node}`, {
+
+    async get_wiki_nodes(user_token: string, space_id: string, parent_node: string, page_token?: string): Promise<NodeRecord[]> {
+        let r = await axios.get(`api/wiki/v2/spaces/${space_id}/nodes?page_size=50&parent_node_token=${parent_node}${page_token ? '&page_token=' + page_token : ''}`, {
             headers: {
                 "Authorization": `Bearer ${user_token}`
             }
         })
-        return r.data.data
+        const d = r.data.data as WikiNodeList
+        let list = d.items
+        if (d.has_more) {
+            list = [...list, ...await this.get_wiki_nodes(user_token, space_id, d.page_token)]
+        }
+        return list
     }
 
     async get_all_wiki_in_space(user_token: string, space_id: string, convert_md: boolean) {
@@ -181,7 +197,7 @@ export class FeishuService {
         const convert = new Converter()
         this.convert = convert_md
         const root = await this.get_wiki_nodes_root(user_token, space_id)
-        await this._r_get_all_wiki_in_space(user_token, space_id, root.items, zipfile, convert)
+        await this._r_get_all_wiki_in_space(user_token, space_id, root, zipfile, convert)
         return await zipfile.generateAsync({ type: 'blob' })
     }
 
@@ -189,7 +205,7 @@ export class FeishuService {
         for (let node of nodes) {
             if (node.has_child) {
                 let subzip = zipfile.folder(node.title)
-                let nodes = (await this.get_wiki_nodes(user_access, space_id, node.node_token)).items
+                let nodes = await this.get_wiki_nodes(user_access, space_id, node.node_token)
                 await this._r_get_all_wiki_in_space(user_access, space_id, nodes, subzip!, convert)
             }
             if (node.obj_type === 'doc') {

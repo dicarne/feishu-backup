@@ -38,7 +38,7 @@ const SaveFile = async () => {
 const wiki_spaces = ref<WikiRecord[]>([])
 const SaveWiki = async () => {
     const wikis = await feishu.get_wiki_list(userToken.value)
-    wiki_spaces.value = wikis.items
+    wiki_spaces.value = wikis
 }
 
 const downloadWikiSpace = async (space_id: string, space_name: string) => {
