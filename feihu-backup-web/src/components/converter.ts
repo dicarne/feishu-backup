@@ -51,7 +51,8 @@ export class Converter {
                 this.decorate('bold', style, '**', file)
                 this.decorate('italic', style, '*', file)
                 this.decorate('link', style, '](', file)
-                this.decorate('link', style, style['link']['url'], file)
+                if (style['link'])
+                    this.decorate('link', style, style['link']['url'], file)
                 this.decorate('link', style, ')', file)
             }
             else {
