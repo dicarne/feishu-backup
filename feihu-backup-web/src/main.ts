@@ -1,11 +1,9 @@
 import { createApp } from 'vue'
-import App from './App.vue'
-import backup from './components/backup.vue'
 import { createRouter, createWebHashHistory } from 'vue-router'
-
+import App from './App.vue'
 const routes = [
-    { path: '/', component: () => App },
-    { path: '/backup/:app_id/:app_secret', component: backup }
+    { path: '/', component: () => import('./App.vue') },
+    { path: '/backup/:app_id/:app_secret', component: () => import('./components/backup.vue') }
 ]
 
 const router = createRouter({
@@ -14,4 +12,4 @@ const router = createRouter({
     routes, // `routes: routes` 的缩写
 })
 
-createApp({}).use(router).mount('#app')
+createApp(App).use(router).mount('#app')
