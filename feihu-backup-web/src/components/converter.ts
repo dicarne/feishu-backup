@@ -73,10 +73,15 @@ export class Converter {
                 let pg = p['paragraph']
                 let els = pg['elements']
                 if (pg['style']) {
-                    if (pg['style']['headingLevel']) {
-                        out.write(this.stringMul('#', pg['style']['headingLevel']))
+                    const style = pg['style']
+                    if (style['headingLevel']) {
+                        out.write(this.stringMul('#', style['headingLevel']))
                         out.write(' ')
                     }
+                    if (style['list']['type'] === 'checkbox') out.write('- [ ] ')
+                    if (style['list']['type'] === 'bullet') out.write('- ')
+                    if (style['list']['type'] === 'number') out.write(JSON.stringify(style['list']['type']['number']) + '. ')
+                    if (style['quote']) out.write('> ')
                 }
                 for (let e of els) {
                     this.convertele(e, out)
@@ -98,6 +103,10 @@ export class Converter {
                     let filename = await this.downloadAsset(token, user_token, zip)
                     out.write(`![](assets/${filename})\n\n`)
                 }
+            } else if (p['type'] == 'horizontalLine') {
+                out.write('\n---\n\n')
+            } else if (p['type'] == 'callout') {
+                this.convertPara(p['callout'], out, user_token, zip)
             }
         }
 
