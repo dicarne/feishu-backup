@@ -1,6 +1,16 @@
 import axios from "axios";
 import JSZip from "jszip";
 import { Converter } from "./converter";
+import * as secret from "../../secret"
+
+export function feishu_api(url: string) {
+    //return "api"
+    return secret.baseUrl + url
+}
+
+function feishu_api_noauth(url: string) {
+    return  secret.baseUrl_noauth + url
+}
 
 export interface UserLogin {
     access_token: string
@@ -72,7 +82,7 @@ export class FeishuService {
     }
 
     async get_root_folder(user_token: string): Promise<RootFolder> {
-        let r = await axios.get("api/drive/explorer/v2/root_folder/meta", {
+        let r = await axios.get(feishu_api("/drive/explorer/v2/root_folder/meta"), {
             headers: {
                 "Authorization": `Bearer ${user_token}`
             }
@@ -81,7 +91,7 @@ export class FeishuService {
     }
 
     async app_login(app_id: string, app_secret: string): Promise<string> {
-        let r = await axios.post("api/auth/v3/tenant_access_token/internal/", {
+        let r = await axios.post(feishu_api_noauth("/auth/v3/tenant_access_token/internal/"), {
             app_id: app_id,
             app_secret: app_secret
         })
@@ -90,7 +100,7 @@ export class FeishuService {
     }
 
     async user_login(user_temp_code: string, server_token: string): Promise<UserLogin> {
-        let r = await axios.post("api/authen/v1/access_token", {
+        let r = await axios.post(feishu_api("/authen/v1/access_token"), {
             "grant_type": "authorization_code",
             "code": user_temp_code
         }, {
@@ -103,7 +113,7 @@ export class FeishuService {
     }
 
     async get_files_in_folder(folder_token: string, user_token: string): Promise<FolderData> {
-        let r = await axios.get(`api/drive/explorer/v2/folder/${folder_token}/children`, {
+        let r = await axios.get(feishu_api(`/drive/explorer/v2/folder/${folder_token}/children`), {
             headers: {
                 "Authorization": `Bearer ${user_token}`
             }
@@ -112,7 +122,7 @@ export class FeishuService {
     }
 
     async get_doc(doc_token: string, user_token: string): Promise<DocContentWrapper> {
-        let r = await axios.get(`api/doc/v2/${doc_token}/content`, {
+        let r = await axios.get(feishu_api(`api/doc/v2/${doc_token}/content`), {
             headers: {
                 "Authorization": `Bearer ${user_token}`
             }
@@ -151,7 +161,7 @@ export class FeishuService {
     }
 
     async get_wiki_list(user_token: string, page_token?: string): Promise<WikiRecord[]> {
-        let r = await axios.get(`api/wiki/v2/spaces?page_size=10${page_token ? '&page_token=' + page_token : ''}`, {
+        let r = await axios.get(feishu_api(`/wiki/v2/spaces?page_size=10${page_token ? '&page_token=' + page_token : ''}`), {
             headers: {
                 "Authorization": `Bearer ${user_token}`
             }
@@ -165,7 +175,7 @@ export class FeishuService {
     }
 
     async get_wiki_nodes_root(user_token: string, space_id: string, page_token?: string): Promise<NodeRecord[]> {
-        let r = await axios.get(`api/wiki/v2/spaces/${space_id}/nodes?page_size=50${page_token ? '&page_token=' + page_token : ''}`, {
+        let r = await axios.get(feishu_api(`/wiki/v2/spaces/${space_id}/nodes?page_size=50${page_token ? '&page_token=' + page_token : ''}`), {
             headers: {
                 "Authorization": `Bearer ${user_token}`
             }
@@ -179,7 +189,7 @@ export class FeishuService {
     }
 
     async get_wiki_nodes(user_token: string, space_id: string, parent_node: string, page_token?: string): Promise<NodeRecord[]> {
-        let r = await axios.get(`api/wiki/v2/spaces/${space_id}/nodes?page_size=50&parent_node_token=${parent_node}${page_token ? '&page_token=' + page_token : ''}`, {
+        let r = await axios.get(feishu_api(`/wiki/v2/spaces/${space_id}/nodes?page_size=50&parent_node_token=${parent_node}${page_token ? '&page_token=' + page_token : ''}`), {
             headers: {
                 "Authorization": `Bearer ${user_token}`
             }
