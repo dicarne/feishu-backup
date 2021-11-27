@@ -32,6 +32,37 @@ export interface DocContentWrapper {
     revision: number
 }
 
+export interface WikiRecord {
+    space_id: string
+    name: string
+    description: string
+}
+
+export interface WikiList {
+    items: WikiRecord[]
+    has_more: boolean
+    msg: string
+}
+
+export interface NodeRecord {
+    has_child: boolean
+    node_token: string
+    node_type: string
+    obj_token: string
+    obj_type: string
+    origin_node_token: string
+    origin_space_id: string
+    parent_node_token: string
+    space_id: string
+    title: string
+}
+
+export interface WikiNodeList {
+    has_more: boolean
+    page_token: string
+    items: NodeRecord[]
+}
+
 
 export class FeishuService {
     convert = true
@@ -112,6 +143,60 @@ export class FeishuService {
             } else if (file.type === 'folder') {
                 const fzip = zipfile.folder(file.name)
                 await this._r_docs_in_folder(file.token, user_access, fzip!, convert)
+            }
+        }
+    }
+
+    async get_wiki_list(user_token: string): Promise<WikiList> {
+        let r = await axios.get(`api/wiki/v2/spaces?page_size=10`, {
+            headers: {
+                "Authorization": `Bearer ${user_token}`
+            }
+        })
+        return r.data.data
+    }
+
+    async get_wiki_nodes_root(user_token: string, space_id: string): Promise<WikiNodeList> {
+        let r = await axios.get(`api/wiki/v2/spaces/${space_id}/nodes?page_size=50`, {
+            headers: {
+                "Authorization": `Bearer ${user_token}`
+            }
+        })
+        return r.data.data
+    }
+    async get_wiki_nodes(user_token: string, space_id: string, parent_node: string): Promise<WikiNodeList> {
+        let r = await axios.get(`api/wiki/v2/spaces/${space_id}/nodes?page_size=50&parent_node_token=${parent_node}`, {
+            headers: {
+                "Authorization": `Bearer ${user_token}`
+            }
+        })
+        return r.data.data
+    }
+
+    async get_all_wiki_in_space(user_token: string, space_id: string, convert_md: boolean) {
+        const zipfile = new JSZip()
+        const convert = new Converter()
+        this.convert = convert_md
+        const root = await this.get_wiki_nodes_root(user_token, space_id)
+        await this._r_get_all_wiki_in_space(user_token, space_id, root.items, zipfile, convert)
+        return await zipfile.generateAsync({ type: 'blob' })
+    }
+
+    async _r_get_all_wiki_in_space(user_access: string, space_id: string, nodes: NodeRecord[], zipfile: JSZip, convert: Converter) {
+        for (let node of nodes) {
+            if (node.has_child) {
+                let subzip = zipfile.folder(node.title)
+                let nodes = (await this.get_wiki_nodes(user_access, space_id, node.node_token)).items
+                await this._r_get_all_wiki_in_space(user_access, space_id, nodes, subzip!, convert)
+            }
+            if (node.obj_type === 'doc') {
+                const file_content = (await this.get_doc(node.obj_token, user_access)).content
+                let fileobj = JSON.parse(file_content)
+
+                if (this.convert) zipfile.file(node.title + ".md", (await convert.convert(user_access, zipfile, fileobj)).file)
+                else zipfile.file(node.title + ".json", file_content)
+            } else {
+                console.warn("Not Impl doc type: " + node.obj_type)
             }
         }
     }

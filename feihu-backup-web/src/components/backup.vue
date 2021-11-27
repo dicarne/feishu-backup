@@ -28,8 +28,14 @@ const SaveFile = async () => {
     const f = await feishu.get_all_docs(userToken.value, convert_md.value.value)
     saveAs(f, 'backup.zip')
 }
+const SaveWiki = async () => {
+    const wikis = await feishu.get_wiki_list(userToken.value)
+    const f = await feishu.get_all_wiki_in_space(userToken.value, wikis.items[1].space_id, true)
+    saveAs(f, 'backup.zip')
+}
 </script>
 
 <template>
     <button @click="SaveFile">Save File</button>
+    <button @click="SaveWiki">Save Wiki</button>
 </template>
