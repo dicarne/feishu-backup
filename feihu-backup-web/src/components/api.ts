@@ -122,7 +122,7 @@ export class FeishuService {
     }
 
     async get_doc(doc_token: string, user_token: string): Promise<DocContentWrapper> {
-        let r = await axios.get(feishu_api(`api/doc/v2/${doc_token}/content`), {
+        let r = await axios.get(feishu_api(`/doc/v2/${doc_token}/content`), {
             headers: {
                 "Authorization": `Bearer ${user_token}`
             }
