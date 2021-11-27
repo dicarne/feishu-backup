@@ -33,7 +33,7 @@ export class Converter {
     }
 
     decorate(tag: string, style: any, dec: string, file: StringFile) {
-        if (style[tag]) { file.write(dec) }
+        if (!!style[tag]) { file.write(dec) }
     }
 
 
@@ -42,6 +42,7 @@ export class Converter {
             let t = ele['textRun']
             if (t['style']) {
                 let style = t['style']
+                this.decorate('link', style, '[', file)
                 this.decorate('codeInline', style, '`', file)
                 this.decorate('bold', style, '**', file)
                 this.decorate('italic', style, '*', file)
@@ -49,6 +50,9 @@ export class Converter {
                 this.decorate('codeInline', style, '`', file)
                 this.decorate('bold', style, '**', file)
                 this.decorate('italic', style, '*', file)
+                this.decorate('link', style, '](', file)
+                this.decorate('link', style, style['link']['url'], file)
+                this.decorate('link', style, ')', file)
             }
             else {
                 file.write(t['text'])
