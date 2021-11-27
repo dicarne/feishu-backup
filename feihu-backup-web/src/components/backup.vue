@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { NButton, NGrid, NGi, NSpace, NList, NListItem, NThing, NModal, NCard } from 'naive-ui'
+import { NButton, NSpace, NList, NListItem, NThing, NModal, NCard, useMessage } from 'naive-ui'
 import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { FeishuService, WikiList, WikiRecord } from './api';
@@ -8,6 +8,7 @@ import { useLocalStorage } from './hooks';
 let router = useRoute()
 let { app_id, app_secret } = router.params
 let code = router.query.code as string
+let message = useMessage()
 const userToken = ref("")
 if (!code && router.query.access_token) {
     userToken.value = router.query.access_token as string
@@ -31,8 +32,14 @@ onMounted(async () => {
 
 const SaveFile = async () => {
     openDownloadModel()
-    const f = await feishu.get_all_docs(userToken.value, convert_md.value.value)
-    saveAs(f, 'backup.zip')
+    try {
+        const f = await feishu.get_all_docs(userToken.value, convert_md.value.value)
+        saveAs(f, 'backup.zip')
+    } catch (error) {
+        console.error(error)
+        message.error("下载错误")
+    }
+
     closeDownloadModel()
 }
 const wiki_spaces = ref<WikiRecord[]>([])
@@ -43,8 +50,13 @@ const SaveWiki = async () => {
 
 const downloadWikiSpace = async (space_id: string, space_name: string) => {
     openDownloadModel()
-    const f = await feishu.get_all_wiki_in_space(userToken.value, space_id, true)
-    saveAs(f, space_name + '_backup.zip')
+    try {
+        const f = await feishu.get_all_wiki_in_space(userToken.value, space_id, true)
+        saveAs(f, space_name + '_backup.zip')
+    } catch (error) {
+        console.error(error)
+        message.error("下载错误")
+    }
     closeDownloadModel()
 }
 
@@ -101,7 +113,7 @@ const closeDownloadModel = () => {
     min-width: 500px;
     background-color: rgb(255, 255, 255);
     border-radius: 20px;
-    
+
     padding: 20px;
     padding-top: 40px;
 }
