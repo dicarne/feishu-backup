@@ -9,6 +9,9 @@ import { NMessageProvider } from 'naive-ui'
 </template>
 
 <style>
+body {
+  margin: 0px;
+}
 #app {
   background-color: rgb(54, 54, 54);
   width: 100vw;

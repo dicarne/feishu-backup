@@ -79,9 +79,9 @@ export class Converter {
                         out.write(this.stringMul('#', style['headingLevel']))
                         out.write(' ')
                     }
-                    if (style['list']['type'] === 'checkbox') out.write('- [ ] ')
-                    if (style['list']['type'] === 'bullet') out.write('- ')
-                    if (style['list']['type'] === 'number') out.write(JSON.stringify(style['list']['type']['number']) + '. ')
+                    if (style['list'] && style['list']['type'] === 'checkbox') out.write('- [ ] ')
+                    if (style['list'] && style['list']['type'] === 'bullet') out.write('- ')
+                    if (style['list'] && style['list']['type'] === 'number') out.write(JSON.stringify(style['list']['type']['number']) + '. ')
                     if (style['quote']) out.write('> ')
                 }
                 for (let e of els) {
