@@ -115,7 +115,7 @@ export class Converter {
                 ext = ".jpg"
             zip.folder("assets")?.file(id + ext, c.data)
         } else {
-            let r = await axios.get(`/api/drive/v1/medias/${id}/download`,
+            let r = await axios.get(`api/drive/v1/medias/${id}/download`,
                 {
                     headers: { 'Authorization': 'Bearer ' + token },
                     responseType: 'arraybuffer'

@@ -39,7 +39,7 @@ export class FeishuService {
     }
 
     async get_root_folder(user_token: string): Promise<RootFolder> {
-        let r = await axios.get("/api/drive/explorer/v2/root_folder/meta", {
+        let r = await axios.get("api/drive/explorer/v2/root_folder/meta", {
             headers: {
                 "Authorization": `Bearer ${user_token}`
             }
@@ -48,7 +48,7 @@ export class FeishuService {
     }
 
     async app_login(app_id: string, app_secret: string): Promise<string> {
-        let r = await axios.post("/api/auth/v3/tenant_access_token/internal/", {
+        let r = await axios.post("api/auth/v3/tenant_access_token/internal/", {
             app_id: app_id,
             app_secret: app_secret
         })
@@ -57,7 +57,7 @@ export class FeishuService {
     }
 
     async user_login(user_temp_code: string, server_token: string): Promise<UserLogin> {
-        let r = await axios.post("/api/authen/v1/access_token", {
+        let r = await axios.post("api/authen/v1/access_token", {
             "grant_type": "authorization_code",
             "code": user_temp_code
         }, {
@@ -70,7 +70,7 @@ export class FeishuService {
     }
 
     async get_files_in_folder(folder_token: string, user_token: string): Promise<FolderData> {
-        let r = await axios.get(`/api/drive/explorer/v2/folder/${folder_token}/children`, {
+        let r = await axios.get(`api/drive/explorer/v2/folder/${folder_token}/children`, {
             headers: {
                 "Authorization": `Bearer ${user_token}`
             }
@@ -79,7 +79,7 @@ export class FeishuService {
     }
 
     async get_doc(doc_token: string, user_token: string): Promise<DocContentWrapper> {
-        let r = await axios.get(`/api/doc/v2/${doc_token}/content`, {
+        let r = await axios.get(`api/doc/v2/${doc_token}/content`, {
             headers: {
                 "Authorization": `Bearer ${user_token}`
             }
