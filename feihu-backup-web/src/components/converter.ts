@@ -20,22 +20,24 @@ interface TmpFile {
 
 export class Converter {
     tmp: LocalForage;
+    docLinks: Map<string, string>
     constructor() {
         this.tmp = localforage.createInstance({
             name: 'file_cache'
         })
+        this.docLinks = new Map<string, string>()
     }
     stringMul(str: string, times: number) {
+        let ret = str
         for (let index = 0; index < times - 1; index++) {
-            str += str
+            ret += str
         }
-        return str
+        return ret
     }
 
     decorate(tag: string, style: any, dec: string, file: StringFile) {
         if (!!style[tag]) { file.write(dec) }
     }
-
 
     convertele(ele: any, file: StringFile) {
         if (ele['type'] == 'textRun') {
@@ -51,8 +53,10 @@ export class Converter {
                 this.decorate('bold', style, '**', file)
                 this.decorate('italic', style, '*', file)
                 this.decorate('link', style, '](', file)
-                if (style['link'])
-                    this.decorate('link', style, style['link']['url'], file)
+                if (style['link']) {
+                    let url = decodeURIComponent(style['link']['url'])
+                    this.decorate('link', style, url, file)
+                }
                 this.decorate('link', style, ')', file)
             }
             else {
@@ -63,29 +67,49 @@ export class Converter {
             file.write("$$")
             file.write(ele['equation']['equation'])
             file.write("$$\n")
+        } else if (ele['type'] == 'docsLink') {
+            let inline = new RegExp('https://\\w*.feishu.cn/((wiki)|(docs))/\\w+(?<id>#\\w+)')
+            let url = ele['docsLink']['url']
+            if (inline.test(url)) {
+                let g = inline.exec(url)?.groups?.['id'] ?? ""
+                file.write(`[${g}](${g})`)
+            }
         }
     }
 
     async convertPara(fobj: any, out: StringFile, user_token: string, zip: JSZip) {
-
         let blocks = fobj['body']['blocks']
         for (let p of blocks) {
             if (p['type'] == 'paragraph') {
                 let pg = p['paragraph']
+                let lineId = pg['lineId']
                 let els = pg['elements']
                 if (pg['style']) {
                     const style = pg['style']
                     if (style['headingLevel']) {
                         out.write(this.stringMul('#', style['headingLevel']))
                         out.write(' ')
+                    } else {
+                        lineId = null
                     }
                     if (style['list'] && style['list']['type'] === 'checkbox') out.write('- [ ] ')
                     if (style['list'] && style['list']['type'] === 'bullet') out.write('- ')
                     if (style['list'] && style['list']['type'] === 'number') out.write(JSON.stringify(style['list']['number']) + '. ')
                     if (style['quote']) out.write('> ')
+                } else {
+                    lineId = null
                 }
                 for (let e of els) {
-                    this.convertele(e, out)
+                    if (lineId) {
+                        out.write(`<span id="${lineId}">`)
+                    }
+                    let innerText = new StringFile()
+                    this.convertele(e, innerText)
+                    out.write(innerText.file)
+                    if (lineId) {
+                        this.docLinks.set(lineId, innerText.file)
+                        out.write("</span>")
+                    }
                 }
                 out.write('\n\n')
             }
@@ -115,6 +139,10 @@ export class Converter {
     async convert(user_token: string, zip: JSZip, fobj: any) {
         let out = new StringFile()
         await this.convertPara(fobj, out, user_token, zip)
+        for (const it of this.docLinks) {
+            let [key, title] = it
+            out.file = replaceAll(out.file, `\\[#${key}\\]\\(#${key}\\)`, `[${title}](#${key})`)
+        }
         return out
     }
 
@@ -151,4 +179,9 @@ export class Converter {
 
         return id + ext
     }
+}
+
+function replaceAll(str: string, f: string, e: string) {//吧f替换成e
+    var reg = new RegExp(f, "g"); //创建正则RegExp对象   
+    return str.replace(reg, e);
 }

@@ -26,6 +26,8 @@ onMounted(async () => {
         app_secret = app_secret as string
         const token = await feishu.app_login(app_id, app_secret)
         userToken.value = (await feishu.user_login(code, token)).access_token
+        let loc = window.location
+        window.location.replace(`${loc.origin}${loc.pathname}#/backup/${app_id}/${app_secret}?access_token=${userToken.value}`)
         console.log(userToken.value)
     }
 })
