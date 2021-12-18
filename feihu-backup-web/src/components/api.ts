@@ -2,6 +2,7 @@ import axios from "axios";
 import JSZip from "jszip";
 import { Converter } from "./converter";
 import * as secret from "../../secret"
+import { MyTreeSelectOption } from "./interface";
 
 export function feishu_api(url: string) {
     //return "api"
@@ -9,7 +10,7 @@ export function feishu_api(url: string) {
 }
 
 function feishu_api_noauth(url: string) {
-    return  secret.baseUrl_noauth + url
+    return secret.baseUrl_noauth + url
 }
 
 export interface UserLogin {
@@ -35,6 +36,13 @@ export interface FolderFile {
 export interface FolderData {
     children: FolderFile
     parentToken: string
+}
+
+export interface FolderMeta {
+    id: string
+    token: string
+    name: string
+    parentId: string
 }
 
 export interface DocContentWrapper {
@@ -72,6 +80,26 @@ export interface WikiNodeList {
     page_token: string
     items: NodeRecord[]
 }
+
+export interface FolderTokenJson {
+    token: string
+    name: string
+    path: string[]
+}
+
+export class DocTree {
+    type: 'doc' | 'dir' | 'root'
+    token: string
+    children: DocTree[]
+    name: string
+    constructor(type: 'doc' | 'dir' | 'root', token: string, name: string) {
+        this.type = type
+        this.token = token
+        this.children = []
+        this.name = name
+    }
+}
+
 
 
 export class FeishuService {
@@ -112,6 +140,15 @@ export class FeishuService {
         return r.data.data
     }
 
+    async get_folder_meta(folder_token: string, user_token: string): Promise<FolderMeta> {
+        let r = await axios.get(feishu_api(`/drive/explorer/v2/folder/${folder_token}/meta`), {
+            headers: {
+                "Authorization": `Bearer ${user_token}`
+            }
+        })
+        return r.data.data
+    }
+
     async get_files_in_folder(folder_token: string, user_token: string): Promise<FolderData> {
         let r = await axios.get(feishu_api(`/drive/explorer/v2/folder/${folder_token}/children`), {
             headers: {
@@ -141,6 +178,25 @@ export class FeishuService {
         return await zipfile.generateAsync({ type: 'blob' })
     }
 
+    async get_some_docs(user_access: string, docs: string[], convert_md: boolean = true): Promise<Blob> {
+        const zipfile = new JSZip()
+        const convert = new Converter()
+        this.convert = convert_md
+        for (const it of docs) {
+            let j: FolderTokenJson = JSON.parse(it)
+            const file_content = (await this.get_doc(j.token, user_access)).content
+            let fileobj = JSON.parse(file_content)
+            let zip = zipfile
+            for (const p of j.path) {
+                zip = zip.folder(p)!
+            }
+            if (this.convert) zip.file(j.name + ".md", (await convert.convert(user_access, zip, fileobj)).file)
+            else zip.file(j.name + ".json", file_content)
+        }
+
+        return await zipfile.generateAsync({ type: 'blob' })
+    }
+
     async _r_docs_in_folder(folder_token: string, user_access: string, zipfile: JSZip, convert: Converter) {
         const root_folder = await this.get_files_in_folder(folder_token, user_access)
         for (let f_token in root_folder.children) {
@@ -156,6 +212,72 @@ export class FeishuService {
             } else if (file.type === 'folder') {
                 const fzip = zipfile.folder(file.name)
                 await this._r_docs_in_folder(file.token, user_access, fzip!, convert)
+            }
+        }
+    }
+
+
+    async get_all_docs_under_folder(user_access: string, folder_token_json: string, depth: number): Promise<MyTreeSelectOption[]> {
+        let options: MyTreeSelectOption[] = []
+        let j: FolderTokenJson = JSON.parse(folder_token_json)
+        const root_folder = await this.get_files_in_folder(j.token, user_access)
+
+        for (let f_token in root_folder.children) {
+            const file = root_folder.children[f_token]
+            if (file.type === 'doc') {
+                let mj: FolderTokenJson = {
+                    token: file.token,
+                    path: [...j.path],
+                    name: file.name
+                }
+                options.push({
+                    label: file.name,
+                    value: JSON.stringify(mj),
+                    isLeaf: true,
+                    depth: depth + 1
+                })
+            } else if (file.type === 'folder') {
+                let name = await (await this.get_folder_meta(file.token, user_access)).name
+                let mj: FolderTokenJson = {
+                    token: file.token,
+                    path: [...j.path, name],
+                    name: ''
+                }
+                options.push({
+                    label: name,
+                    value: JSON.stringify(mj),
+                    isLeaf: false,
+                    depth: depth + 1
+                })
+            }
+        }
+        return options
+    }
+
+    async get_all_docs_list(user_access: string): Promise<MyTreeSelectOption[]> {
+        const root = await this.get_root_folder(user_access)
+        //let tree = new DocTree('dir', root.token, "root")
+        //await this._r_docs_in_folder_list(root.token, user_access, tree)
+        let mj: FolderTokenJson = {
+            token: root.token,
+            path: [],
+            name: ''
+        }
+        return await this.get_all_docs_under_folder(user_access, JSON.stringify(mj), 0)
+    }
+
+    async _r_docs_in_folder_list(folder_token: string, user_access: string, tree: DocTree) {
+        const root_folder = await this.get_files_in_folder(folder_token, user_access)
+        tree.name = await (await this.get_folder_meta(folder_token, user_access)).name
+        for (let f_token in root_folder.children) {
+            const file = root_folder.children[f_token]
+            if (file.type === 'doc') {
+                const ctree = new DocTree('doc', file.token, file.name)
+                tree.children.push(ctree)
+            } else if (file.type === 'folder') {
+                const ctree = new DocTree('dir', file.token, "[loading]")
+                await this._r_docs_in_folder_list(file.token, user_access, ctree)
+                tree.children.push(ctree)
             }
         }
     }
