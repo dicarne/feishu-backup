@@ -192,6 +192,7 @@ export class FeishuService {
             }
             if (this.convert) zip.file(j.name + ".md", (await convert.convert(user_access, zip, fileobj)).file)
             else zip.file(j.name + ".json", file_content)
+            this.downloadingCallback?.(j.name)
         }
 
         return await zipfile.generateAsync({ type: 'blob' })
