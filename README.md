@@ -46,12 +46,9 @@ pnpm run build
 - [ ] poll	投票
 - [x] code	新代码块
 - [ ] <s>docsApp	团队互动应用</s>
-- [x] callout	高亮块
+- [x] <s>callout	高亮块</s>
 - [ ] <s>undefinedBlock	未支持的block，全部用undefineBlock表示</s>
 
 ## 更新
 - 增加一个看得过去的ui界面。
 - 知识库已支持。
-
-## 废弃
-旧的版本需要一个后端、需要脚本转换，是我想复杂了。其实一个前端都能搞定。不过纯前端的话api需要代理一下，具体速度受限于你的服务器带宽。

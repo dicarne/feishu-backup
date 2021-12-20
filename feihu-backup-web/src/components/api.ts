@@ -3,6 +3,7 @@ import JSZip from "jszip";
 import { Converter } from "./converter";
 import * as secret from "../../secret"
 import { MyTreeSelectOption } from "./interface";
+import { stringNullIsDefault } from "../lib/stringUtil";
 
 export function feishu_api(url: string) {
     //return "api"
@@ -190,9 +191,17 @@ export class FeishuService {
             for (const p of j.path) {
                 zip = zip.folder(p)!
             }
-            if (this.convert) zip.file(j.name + ".md", (await convert.convert(user_access, zip, fileobj)).file)
-            else zip.file(j.name + ".json", file_content)
-            this.downloadingCallback?.(j.name)
+            let name = stringNullIsDefault(j.name, "未命名文档")
+            let ind = 1
+            let rename = ''
+            while(zipfile.files[name+rename]){
+                rename = String(ind)
+                ind += 1
+            }
+            name = name + rename
+            if (this.convert) zip.file(name + ".md", (await convert.convert(user_access, zip, fileobj)).file)
+            else zip.file(name + ".json", file_content)
+            this.downloadingCallback?.(name)
         }
 
         return await zipfile.generateAsync({ type: 'blob' })
@@ -206,7 +215,14 @@ export class FeishuService {
             if (file.type === 'doc') {
                 const file_content = (await this.get_doc(file.token, user_access)).content
                 let fileobj = JSON.parse(file_content)
-
+                let name = stringNullIsDefault(file.name, "未命名文档")
+                let ind = 1
+                let rename = ''
+                while(zipfile.files[name+rename]){
+                    rename = String(ind)
+                    ind += 1
+                }
+                name = name + rename
                 if (this.convert) zipfile.file(file.name + ".md", (await convert.convert(user_access, zipfile, fileobj)).file)
                 else zipfile.file(file.name + ".json", file_content)
                 this.downloadingCallback?.(file.name)
@@ -229,10 +245,10 @@ export class FeishuService {
                 let mj: FolderTokenJson = {
                     token: file.token,
                     path: [...j.path],
-                    name: file.name
+                    name: stringNullIsDefault(file.name, "未命名文档")
                 }
                 options.push({
-                    label: file.name,
+                    label: stringNullIsDefault(file.name, "未命名文档"),
                     value: JSON.stringify(mj),
                     isLeaf: true,
                     depth: depth + 1
@@ -344,10 +360,18 @@ export class FeishuService {
             if (node.obj_type === 'doc') {
                 const file_content = (await this.get_doc(node.obj_token, user_access)).content
                 let fileobj = JSON.parse(file_content)
+                let name = stringNullIsDefault(node.title, "未命名文档")
+                let ind = 1
+                let rename = ''
+                while(zipfile.files[name+rename]){
+                    rename = String(ind)
+                    ind += 1
+                }
+                name = name + rename
 
-                if (this.convert) zipfile.file(node.title + ".md", (await convert.convert(user_access, zipfile, fileobj)).file)
-                else zipfile.file(node.title + ".json", file_content)
-                this.downloadingCallback?.(node.title)
+                if (this.convert) zipfile.file(name + ".md", (await convert.convert(user_access, zipfile, fileobj)).file)
+                else zipfile.file(name + ".json", file_content)
+                this.downloadingCallback?.(name)
             } else {
                 console.warn("Not Impl doc type: " + node.obj_type)
             }
