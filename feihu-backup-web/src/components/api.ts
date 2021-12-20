@@ -181,14 +181,14 @@ export class FeishuService {
 
     zipfileName(rawname: string, zip: JSZip, ext: string) {
         let name = stringNullIsDefault(rawname, "未命名文档")
-            let ind = 1
-            let rename = ''
-            while(zip.files[name+rename + ext]){
-                rename = String(ind)
-                ind += 1
-            }
-            name = name + rename
-            return name
+        let ind = 1
+        let rename = ''
+        while(zip.files[name+rename + ext]){
+            rename = String(ind)
+            ind += 1
+        }
+        name = name + rename + ext
+        return name
     }
 
     async get_some_docs(user_access: string, docs: string[], convert_md: boolean = true): Promise<Blob> {
