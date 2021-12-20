@@ -179,6 +179,18 @@ export class FeishuService {
         return await zipfile.generateAsync({ type: 'blob' })
     }
 
+    zipfileName(rawname: string, zip: JSZip, ext: string) {
+        let name = stringNullIsDefault(rawname, "未命名文档")
+            let ind = 1
+            let rename = ''
+            while(zip.files[name+rename] + ext){
+                rename = String(ind)
+                ind += 1
+            }
+            name = name + rename
+            return name
+    }
+
     async get_some_docs(user_access: string, docs: string[], convert_md: boolean = true): Promise<Blob> {
         const zipfile = new JSZip()
         const convert = new Converter()
@@ -191,16 +203,9 @@ export class FeishuService {
             for (const p of j.path) {
                 zip = zip.folder(p)!
             }
-            let name = stringNullIsDefault(j.name, "未命名文档")
-            let ind = 1
-            let rename = ''
-            while(zip.files[name+rename]){
-                rename = String(ind)
-                ind += 1
-            }
-            name = name + rename
-            if (this.convert) zip.file(name + ".md", (await convert.convert(user_access, zip, fileobj)).file)
-            else zip.file(name + ".json", file_content)
+            let name = this.zipfileName(j.name, zip, this.convert ? ".md" : ".json")
+            if (this.convert) zip.file(name, (await convert.convert(user_access, zip, fileobj)).file)
+            else zip.file(name, file_content)
             this.downloadingCallback?.(name)
         }
 
@@ -215,16 +220,10 @@ export class FeishuService {
             if (file.type === 'doc') {
                 const file_content = (await this.get_doc(file.token, user_access)).content
                 let fileobj = JSON.parse(file_content)
-                let name = stringNullIsDefault(file.name, "未命名文档")
-                let ind = 1
-                let rename = ''
-                while(zipfile.files[name+rename]){
-                    rename = String(ind)
-                    ind += 1
-                }
-                name = name + rename
-                if (this.convert) zipfile.file(file.name + ".md", (await convert.convert(user_access, zipfile, fileobj)).file)
-                else zipfile.file(file.name + ".json", file_content)
+
+                let name = this.zipfileName(file.name, zipfile, this.convert ? ".md" : ".json")
+                if (this.convert) zipfile.file(name + ".md", (await convert.convert(user_access, zipfile, fileobj)).file)
+                else zipfile.file(name + ".json", file_content)
                 this.downloadingCallback?.(file.name)
             } else if (file.type === 'folder') {
                 const fzip = zipfile.folder(file.name)
@@ -245,7 +244,7 @@ export class FeishuService {
                 let mj: FolderTokenJson = {
                     token: file.token,
                     path: [...j.path],
-                    name: stringNullIsDefault(file.name, "未命名文档")
+                    name: file.name
                 }
                 options.push({
                     label: stringNullIsDefault(file.name, "未命名文档"),
@@ -360,15 +359,8 @@ export class FeishuService {
             if (node.obj_type === 'doc') {
                 const file_content = (await this.get_doc(node.obj_token, user_access)).content
                 let fileobj = JSON.parse(file_content)
-                let name = stringNullIsDefault(node.title, "未命名文档")
-                let ind = 1
-                let rename = ''
-                while(zipfile.files[name+rename]){
-                    rename = String(ind)
-                    ind += 1
-                }
-                name = name + rename
-
+                let name = this.zipfileName(node.title, zipfile, this.convert ? ".md" : ".json")
+                
                 if (this.convert) zipfile.file(name + ".md", (await convert.convert(user_access, zipfile, fileobj)).file)
                 else zipfile.file(name + ".json", file_content)
                 this.downloadingCallback?.(name)
