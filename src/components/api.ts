@@ -1,7 +1,7 @@
 import axios from "axios";
 import JSZip from "jszip";
 import { Converter } from "./converter";
-import * as secret from "../../secret"
+import secret from "../../secret"
 import { MyTreeSelectOption } from "./interface";
 import { stringNullIsDefault } from "../lib/stringUtil";
 
