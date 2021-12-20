@@ -194,7 +194,7 @@ export class FeishuService {
             let name = stringNullIsDefault(j.name, "未命名文档")
             let ind = 1
             let rename = ''
-            while(zipfile.files[name+rename]){
+            while(zip.files[name+rename]){
                 rename = String(ind)
                 ind += 1
             }
