@@ -1,13 +1,17 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-//import { proxy } from './secret'
+import { loadEnv } from 'vite'
 
-// https://vitejs.dev/config/
-export default defineConfig({
-  server: {
-    port: 3800,
-    //proxy: proxy
-  },
-  base: "/tool/feishu-backup/",
-  plugins: [vue()]
-})
+export default ({ mode }) => {
+  const env = loadEnv(mode, process.cwd())
+  console.log(env.VITE_BASEURL)
+  return defineConfig({
+    server: {
+      port: 3800,
+      //proxy: proxy
+    },
+    base: env.VITE_BASEURL,
+    plugins: [vue()]
+  })
+
+}

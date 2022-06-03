@@ -1,27 +1,28 @@
 {
-  "name": "feihu-backup-web",
-  "version": "0.0.0",
-  "scripts": {
-    "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
-    "serve": "vite preview"
-  },
-  "dependencies": {
-    "axios": "^0.24.0",
-    "file-saver": "^2.0.5",
-    "jszip": "^3.7.1",
-    "localforage": "^1.10.0",
-    "pnpm": "^6.24.1",
-    "vue": "^3.2.26",
-    "vue-router": "^4.0.12"
-  },
-  "devDependencies": {
-    "@types/file-saver": "^2.0.4",
-    "@vitejs/plugin-vue": "^1.10.2",
-    "naive-ui": "^2.22.0",
-    "typescript": "^4.5.4",
-    "vfonts": "^0.1.0",
-    "vite": "^2.7.3",
-    "vue-tsc": "^0.3.0"
-  }
+    "name": "feihu-backup-web",
+    "version": "0.0.0",
+    "scripts": {
+        "dev": "vite",
+        "build": "vue-tsc --noEmit && vite build",
+        "github": "vue-tsc --noEmit && vite build --mode github",
+        "serve": "vite preview"
+    },
+    "dependencies": {
+        "axios": "^0.24.0",
+        "file-saver": "^2.0.5",
+        "jszip": "^3.7.1",
+        "localforage": "^1.10.0",
+        "pnpm": "^6.24.1",
+        "vue": "^3.2.26",
+        "vue-router": "^4.0.12"
+    },
+    "devDependencies": {
+        "@types/file-saver": "^2.0.4",
+        "@vitejs/plugin-vue": "^1.10.2",
+        "naive-ui": "^2.22.0",
+        "typescript": "^4.5.4",
+        "vfonts": "^0.1.0",
+        "vite": "^2.7.3",
+        "vue-tsc": "^0.3.0"
+    }
 }
