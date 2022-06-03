@@ -4,7 +4,7 @@
 
 先在飞书开放平台创建应用，授予足够的权限：把云文档相关的都点上。
 
-记住`app_id`和`app_secret`，构造url: `https://{{your_server}}/tool/feishu-backup/{{app_id}}/{{app_secret}}`。在飞书应用后台的安全设置中的重定向中写入这个url。
+记住`app_id`和`app_secret`，构造url: `https://{{your_server}}/tool/feishu-backup/#/backup/{{app_id}}/{{app_secret}}`。在飞书应用后台的安全设置中的重定向中写入这个url。
 
 把这个url encode后，作为`{{your_direct_url}}`。
 
@@ -33,6 +33,7 @@ pnpm run build
 
 ## 注意
 这是为个人用户设计，你必须要有飞书的管理员权限才行。否则API无法获取你的文档。
+注意，URL可能泄露你的app secret，请在可信的环境使用。
 
 ## 更新
 - 支持飞书2.0 docx（不完全）
