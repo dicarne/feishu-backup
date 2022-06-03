@@ -72,6 +72,9 @@ function convertElements(ele: element[]) {
         if (e.text_run) {
             let ct = e.text_run.content
             let sty = e.text_run.text_element_style
+            if (sty.link) {
+                ct = `[${ct}](${decodeURIComponent(sty.link.url)})`
+            }
             if (sty.bold) ct = "**" + ct + "**"
             if (sty.italic) ct = "*" + ct + "*"
             if (sty.inline_code) ct = "`" + ct + "`"

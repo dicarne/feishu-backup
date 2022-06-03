@@ -282,6 +282,13 @@ export class FeishuService {
                 const content = await this.get_docx(file.token, user_access)
                 let name = this.zipfileName(file.name, zipfile, ".json")
                 zipfile.file(name, JSON.stringify(content))
+                let mdname = this.zipfileName(file.name, zipfile, ".md")
+                try {
+                    zipfile.file(mdname, await convertDocxToMD("", content, zipfile, user_access))
+                }
+                catch (e) {
+                    console.error(e)
+                }
                 this.downloadingCallback?.(file.name)
             }
         }
@@ -343,22 +350,6 @@ export class FeishuService {
             type: 'root'
         }
         return await this.get_all_docs_under_folder(user_access, JSON.stringify(mj), 0)
-    }
-
-    async _r_docs_in_folder_list(folder_token: string, user_access: string, tree: DocTree) {
-        const root_folder = await this.get_files_in_folder(folder_token, user_access)
-        tree.name = (await this.get_folder_meta(folder_token, user_access)).name
-        for (let f_token in root_folder.children) {
-            const file = root_folder.children[f_token]
-            if (file.type === 'doc') {
-                const ctree = new DocTree('doc', file.token, file.name)
-                tree.children.push(ctree)
-            } else if (file.type === 'folder') {
-                const ctree = new DocTree('dir', file.token, "[loading]")
-                await this._r_docs_in_folder_list(file.token, user_access, ctree)
-                tree.children.push(ctree)
-            }
-        }
     }
 
     async get_wiki_list(user_token: string, page_token?: string): Promise<WikiRecord[]> {
@@ -424,9 +415,21 @@ export class FeishuService {
                 let fileobj = JSON.parse(file_content)
                 let name = this.zipfileName(node.title, zipfile, this.convert ? ".md" : ".json")
 
-                if (this.convert) zipfile.file(name + ".md", (await convert.convert(user_access, zipfile, fileobj)).file)
-                else zipfile.file(name + ".json", file_content)
+                if (this.convert) zipfile.file(name, (await convert.convert(user_access, zipfile, fileobj)).file)
+                else zipfile.file(name, file_content)
                 this.downloadingCallback?.(name)
+            } else if (node.obj_type === 'docx') {
+                const content = await this.get_docx(node.obj_token, user_access)
+                let name = this.zipfileName(node.title, zipfile, ".json")
+                zipfile.file(name, JSON.stringify(content))
+                let mdname = this.zipfileName(node.title, zipfile, ".md")
+                try {
+                    zipfile.file(mdname, await convertDocxToMD("", content, zipfile, user_access))
+                }
+                catch (e) {
+                    console.error(e)
+                }
+                this.downloadingCallback?.(node.title)
             } else {
                 console.warn("Not Impl doc type: " + node.obj_type)
             }
