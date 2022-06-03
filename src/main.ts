@@ -3,7 +3,8 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import App from './App.vue'
 const routes = [
     { path: '/', component: () => import('./App.vue') },
-    { path: '/backup/:app_id/:app_secret', component: () => import('./components/backup.vue') }
+    { path: '/backup/:app_id/:app_secret', component: () => import('./components/backup.vue') },
+    { path: '/config', component: () => import('./components/config.vue') }
 ]
 
 const router = createRouter({
