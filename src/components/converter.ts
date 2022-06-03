@@ -13,11 +13,13 @@ class StringFile {
     }
 }
 
-interface TmpFile {
+export interface TmpFile {
     mime: string
     data: any
 }
-
+export function decorate(tag: string, style: any, dec: string, file: StringFile) {
+    if (!!style[tag]) { file.write(dec) }
+}
 export class Converter {
     tmp: LocalForage;
     docLinks: Map<string, string>
@@ -35,29 +37,27 @@ export class Converter {
         return ret
     }
 
-    decorate(tag: string, style: any, dec: string, file: StringFile) {
-        if (!!style[tag]) { file.write(dec) }
-    }
+    
 
     convertele(ele: any, file: StringFile) {
         if (ele['type'] == 'textRun') {
             let t = ele['textRun']
             if (t['style']) {
                 let style = t['style']
-                this.decorate('link', style, '[', file)
-                this.decorate('codeInline', style, '`', file)
-                this.decorate('bold', style, '**', file)
-                this.decorate('italic', style, '*', file)
+                decorate('link', style, '[', file)
+                decorate('codeInline', style, '`', file)
+                decorate('bold', style, '**', file)
+                decorate('italic', style, '*', file)
                 file.write(t['text'])
-                this.decorate('codeInline', style, '`', file)
-                this.decorate('bold', style, '**', file)
-                this.decorate('italic', style, '*', file)
-                this.decorate('link', style, '](', file)
+                decorate('codeInline', style, '`', file)
+                decorate('bold', style, '**', file)
+                decorate('italic', style, '*', file)
+                decorate('link', style, '](', file)
                 if (style['link']) {
                     let url = decodeURIComponent(style['link']['url'])
-                    this.decorate('link', style, url, file)
+                    decorate('link', style, url, file)
                 }
-                this.decorate('link', style, ')', file)
+                decorate('link', style, ')', file)
             }
             else {
                 file.write(t['text'])

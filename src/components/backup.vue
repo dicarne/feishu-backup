@@ -79,7 +79,7 @@ const SaveFileAll = () => {
             closeDownloadModel()
         },
         onNegativeClick: () => {
-            
+
         }
     })
 
@@ -131,17 +131,9 @@ const handleLoadDocFolder = async (option: any) => {
             padding: '10px'
         }">
             <n-space v-if="page === 'docs'" vertical>
-                <n-cascader
-                    v-model:value="doc_options_value"
-                    multiple
-                    :options="doc_options as any"
-                    :cascade="true"
-                    :check-strategy="'child'"
-                    :show-path="false"
-                    remote
-                    :on-load="handleLoadDocFolder"
-                    placeholder="选择文件"
-                />
+                <n-cascader v-model:value="doc_options_value" multiple :options="doc_options as any" :cascade="true"
+                    :check-strategy="'child'" :show-path="false" remote :on-load="handleLoadDocFolder"
+                    placeholder="选择文件" />
                 <n-space justify="space-around">
                     <n-button strong secondary type="warning" @click="SaveFileAll">下载所有文件</n-button>
                     <n-button strong secondary type="info" @click="SaveFileSelected">下载选中文件</n-button>
@@ -160,14 +152,8 @@ const handleLoadDocFolder = async (option: any) => {
             </n-space>
         </div>
     </div>
-    <n-modal
-        v-model:show="downloading"
-        :mask-closable="false"
-        title="下载中"
-        @positive-click="closeDownloadModel"
-        size="huge"
-        :style="{ width: '400px', maxHeight: '600px' }"
-    >
+    <n-modal v-model:show="downloading" :mask-closable="false" title="下载中" @positive-click="closeDownloadModel"
+        size="huge" :style="{ width: '400px', maxHeight: '600px' }">
         <n-card>
             <template #header>下载中</template>
             <p v-for="item in downloadingList">{{ item }}</p>
