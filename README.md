@@ -115,6 +115,6 @@ pnpm run build
 | isv         | 三方 Block                          |
 | mindnote    | 思维笔记 Block                      |
 | sheet       | 电子表格 Block                      |
-| table       | 表格 Block                          |
-| table_cell  | 单元格 Block                        |
+| table       | 表格 Block                          | 支持，但不能合并
+| table_cell  | 单元格 Block                        | 支持
 | view        | 视图 Block                          |

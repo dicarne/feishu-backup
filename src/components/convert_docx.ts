@@ -32,6 +32,17 @@ interface DocxImage extends DocxBlock {
         token: string
     }
 }
+interface DocxTable extends DocxBlock {
+    table: {
+        cells: string[]
+        property: {
+            column_size: number
+            column_width: number[]
+            merge_info: { col_span: number, row_span: number }[]
+            row_size: number
+        }
+    }
+}
 interface element {
     text_run?: {
         content: string
@@ -92,7 +103,7 @@ function convertElements(ele: element[]) {
     return md
 }
 
-export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: JSZip, access: string, parent_prefix?: string) {
+export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: JSZip, access: string, args?: { parent_prefix?: string, nonewline?: boolean }) {
     let tmd = ""
     let continue_block_type = 0
     for (const ele of blocks) {
@@ -105,9 +116,12 @@ export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: 
         }
         let block_next_line = "\n\n"
         let md = ""
-        if (parent_prefix) {
-            md = parent_prefix + md
+        if (args?.parent_prefix) {
+            md = args.parent_prefix + md
             block_next_line = "\n"
+        }
+        if (args?.nonewline) {
+            block_next_line = ""
         }
         switch (ele.block_type) {
             case BlockType.page: {
@@ -197,7 +211,7 @@ export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: 
             case BlockType.quote: {
                 continue_block_type = BlockType.quote
                 const e = ele.children
-                md += await convertDocxToMD(ele.block_id, blocks, zip, access, "> ") + "\n"
+                md += await convertDocxToMD(ele.block_id, blocks, zip, access, { parent_prefix: "> " }) + "\n"
                 break
             }
             case BlockType.image: {
@@ -228,6 +242,37 @@ export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: 
                 const token = e.file.token
                 const path = await downloadAsset(token, access, zip, name)
                 md += `[${name}](assets/${path})`
+                break
+            }
+            case BlockType.table: {
+                const e = ele as DocxTable
+                const cols = e.table.property.column_size
+                const rows = e.table.property.row_size
+                const children = e.children
+                const cells = blocks.filter(b => b.parent_id === e.block_id)
+                //.map(b => blocks.find(a => a.block_id == b.children[0]))
+                for (let i = 0; i < rows; i++) {
+                    md += "|"
+                    for (let j = 0; j < cols; j++) {
+                        const index = i * rows + j
+                        const it = cells[index]
+                        if (!it) {
+                            md += "  |"
+                        } else {
+                            md += await convertDocxToMD(it.block_id, blocks, zip, access, {
+                                nonewline: true
+                            }) + " |"
+                        }
+                    }
+                    md += "\n"
+                    if (i === 0) {
+                        md += "|"
+                        for (let j = 0; j < cols; j++) {
+                            md += "---|"
+                        }
+                        md += "\n"
+                    }
+                }
                 break
             }
             default:
@@ -305,7 +350,7 @@ enum BlockType {
     mindnote,
     sheet,
     table,
-    tabel_shell,
+    tabel_cell,
     view,
     // ----
     quote = 34,     //
