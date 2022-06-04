@@ -90,7 +90,11 @@ export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: 
     let tmd = ""
     let continue_block_type = 0
     for (const ele of blocks) {
-        if (ele.parent_id != parent) continue
+        if (ele.parent_id != parent) {
+            if (parent != "")
+                console.log("parent error", parent, ele)
+            continue
+        }
         if (continue_block_type != ele.block_type) {
             if (continue_block_type != 0) tmd += "\n"
             continue_block_type = 0
@@ -101,6 +105,7 @@ export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: 
             md = parent_prefix + md
             block_next_line = "\n"
         }
+        console.log("outside", ele)
         switch (ele.block_type) {
             case BlockType.page: {
                 const e = ele as DocxPage
@@ -189,7 +194,7 @@ export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: 
             case BlockType.quote: {
                 continue_block_type = BlockType.quote
                 const e = ele.children
-                md += await convertDocxToMD(ele.block_id, blocks.filter(a => e.includes(a.block_id)), zip, access, "> ") + "\n"
+                md += await convertDocxToMD(ele.block_id, blocks, zip, access, "> ") + "\n"
                 break
             }
             case BlockType.image: {
@@ -197,6 +202,15 @@ export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: 
                 const filename = await downloadAsset(e.image.token, access, zip)
                 md += `![](assets/${filename})\n\n`
                 break
+            }
+            case BlockType.col: {
+                console.log(blocks)
+                md += await convertDocxToMD(ele.block_id, blocks, zip, access)
+                break
+            }
+            case BlockType.col_item: {
+                md += await convertDocxToMD(ele.block_id, blocks, zip, access)
+                break;
             }
             default:
                 break;
@@ -266,7 +280,7 @@ enum BlockType {
     line,
     file = 23,
     col,
-    cols,
+    col_item,
     inline,
     image,
     widget,
