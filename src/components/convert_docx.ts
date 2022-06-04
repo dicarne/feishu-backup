@@ -91,8 +91,6 @@ export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: 
     let continue_block_type = 0
     for (const ele of blocks) {
         if (ele.parent_id != parent) {
-            if (parent != "")
-                console.log("parent error", parent, ele)
             continue
         }
         if (continue_block_type != ele.block_type) {
@@ -105,7 +103,6 @@ export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: 
             md = parent_prefix + md
             block_next_line = "\n"
         }
-        console.log("outside", ele)
         switch (ele.block_type) {
             case BlockType.page: {
                 const e = ele as DocxPage
@@ -204,7 +201,6 @@ export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: 
                 break
             }
             case BlockType.col: {
-                console.log(blocks)
                 md += await convertDocxToMD(ele.block_id, blocks, zip, access)
                 break
             }
