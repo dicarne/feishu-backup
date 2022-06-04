@@ -182,8 +182,8 @@ export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: 
                 md += "1. " + convertElements(e.elements) + "\n"
                 break
             }
-            case BlockType.unorderList: {
-                continue_block_type = BlockType.unorderList
+            case BlockType.bullet: {
+                continue_block_type = BlockType.bullet
                 const e = (ele as any).bullet as BlockContent
                 md += "* " + convertElements(e.elements) + "\n"
                 break
@@ -200,15 +200,15 @@ export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: 
                 md += `![](assets/${filename})\n\n`
                 break
             }
-            case BlockType.col: {
+            case BlockType.grid: {
                 md += await convertDocxToMD(ele.block_id, blocks, zip, access)
                 break
             }
-            case BlockType.col_item: {
+            case BlockType.grid_column: {
                 md += await convertDocxToMD(ele.block_id, blocks, zip, access)
                 break;
             }
-            case BlockType.line: {
+            case BlockType.divider: {
                 md += "---\n\n"
                 break
             }
@@ -267,27 +267,27 @@ enum BlockType {
     h7,             //
     h8,             //
     h9,             //
-    unorderList,    //
+    bullet,    //
     orderList,      //
     code,           //
     ref = 15,       //
-    math,           
+    equation,           
     todo,           //
-    mutiSheet,
-    hightlight,
-    talk,
-    uml,
-    line,           //
+    bitable,
+    callout,
+    chat_card,
+    diagram,
+    divider,           //
     file = 23,
-    col,            //
-    col_item,       //
-    inline,
+    grid,            //
+    grid_column,       //
+    iframe,
     image,          //
     widget,
-    note,
-    esheet,
+    mindnote,
     sheet,
-    sheetBlock,
+    table,
+    tabel_shell,
     view,
     // ----
     quote = 34,     //

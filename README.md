@@ -88,3 +88,33 @@ pnpm run build
   - 图片
 - 增加一个看得过去的ui界面。
 - 知识库已支持。
+
+## 支持内容
+### docx
+| 类型        | 描述                                | 支持     |
+| ----------- | ----------------------------------- | -------- |
+| page        | 文档 Block，是整个文档树的根节点    | 支持     |
+| text        | 文本 Block                          | 支持     |
+| headingN    | 标题 Block，headingN，N 取值范围1~9 | 支持     |
+| bullet      | 无序列表 Block                      | 支持     |
+| ordered     | 有序列表 Block                      | 支持     |
+| code        | 代码块 Block                        | 支持     |
+| quote       | 引用 Block                          | 支持     |
+| equation    | 公式 Block                          | 支持     |
+| todo        | 任务 Block                          | 支持     |
+| bitable     | 多维表格 Block                      |
+| callout     | 高亮块 Block                        |
+| chat_card   | 会话卡片 Block                      |
+| diagram     | UML 图 Block                        |
+| divider     | 分割线 Block                        | 支持     |
+| file        | 文件 Block                          |
+| grid        | 分栏 Block                          | 部分支持 |
+| grid_column | 分栏列 Block                        | 部分支持 |
+| iframe      | 内嵌 Block                          |
+| image       | 图片 Block                          | 支持     |
+| isv         | 三方 Block                          |
+| mindnote    | 思维笔记 Block                      |
+| sheet       | 电子表格 Block                      |
+| table       | 表格 Block                          |
+| table_cell  | 单元格 Block                        |
+| view        | 视图 Block                          |
