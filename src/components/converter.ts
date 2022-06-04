@@ -64,9 +64,9 @@ export class Converter {
             }
         }
         else if (ele['type'] == 'equation') {
-            file.write("$$")
+            file.write("$")
             file.write(ele['equation']['equation'])
-            file.write("$$\n")
+            file.write("$")
         } else if (ele['type'] == 'docsLink') {
             let inline = new RegExp('https://\\w*.feishu.cn/((wiki)|(docs))/\\w+(?<id>#\\w+)')
             let url = ele['docsLink']['url']
