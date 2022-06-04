@@ -212,6 +212,10 @@ export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: 
                 md += await convertDocxToMD(ele.block_id, blocks, zip, access)
                 break;
             }
+            case BlockType.line: {
+                md += "---\n\n"
+                break
+            }
             default:
                 break;
         }
@@ -256,33 +260,33 @@ async function downloadAsset(id: string, token: string, zip: JSZip) {
 }
 
 enum BlockType {
-    page = 1,
-    text = 2,
-    h1 = 3,
-    h2 = 4,
-    h3 = 5,
-    h4 = 6,
-    h5,
-    h6,
-    h7,
-    h8,
-    h9,
-    unorderList,
-    orderList,
-    code,
-    ref = 15,
-    math,
-    todo,
+    page = 1,       //
+    text = 2,       //
+    h1 = 3,         //
+    h2 = 4,         //
+    h3 = 5,         //
+    h4 = 6,         //
+    h5,             //
+    h6,             //
+    h7,             //
+    h8,             //
+    h9,             //
+    unorderList,    //
+    orderList,      //
+    code,           //
+    ref = 15,       //
+    math,           
+    todo,           //
     mutiSheet,
     hightlight,
     talk,
     uml,
-    line,
+    line,           //
     file = 23,
-    col,
-    col_item,
+    col,            //
+    col_item,       //
     inline,
-    image,
+    image,          //
     widget,
     note,
     esheet,
@@ -290,7 +294,7 @@ enum BlockType {
     sheetBlock,
     view,
     // ----
-    quote = 34,
+    quote = 34,     //
     unsupport = 999
 }
 
