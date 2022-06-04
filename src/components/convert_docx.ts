@@ -92,12 +92,12 @@ function convertElements(ele: element[]) {
             if (sty.link) {
                 ct = `[${ct}](${decodeURIComponent(sty.link.url)})`
             }
-            if (sty.bold) ct = "**" + ct + "**"
-            if (sty.italic) ct = "*" + ct + "*"
+            if (sty.bold) ct = "**" + ct.trim() + "**"
+            if (sty.italic) ct = "*" + ct.trim() + "*"
             if (sty.inline_code) ct = "`" + ct + "`"
             md += ct
         } else if (e.equation) {
-            md += "$" + e.equation.content + "$"
+            md += "$" + e.equation.content.trim() + "$"
         }
     }
     return md
@@ -190,9 +190,9 @@ export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: 
                 continue_block_type = BlockType.todo
                 const e = (ele as any).todo as BlockContent
                 if (e.style.done) {
-                    md += "[x] " + convertElements(e.elements) + "\n"
+                    md += "- [x] " + convertElements(e.elements) + "\n"
                 } else {
-                    md += "[ ] " + convertElements(e.elements) + "\n"
+                    md += "- [ ] " + convertElements(e.elements) + "\n"
                 }
                 break
             }
