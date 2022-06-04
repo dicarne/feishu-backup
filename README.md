@@ -107,7 +107,7 @@ pnpm run build
 | chat_card   | 会话卡片 Block                      |
 | diagram     | UML 图 Block                        |
 | divider     | 分割线 Block                        | 支持     |
-| file        | 文件 Block                          |
+| file        | 文件 Block                          | 支持     |
 | grid        | 分栏 Block                          | 部分支持 |
 | grid_column | 分栏列 Block                        | 部分支持 |
 | iframe      | 内嵌 Block                          |

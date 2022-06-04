@@ -19,6 +19,12 @@ interface DocxPage extends DocxBlock {
 interface DocxCode extends DocxBlock {
     code: BlockContent
 }
+interface DocxFile extends DocxBlock {
+    file: {
+        name: string
+        token: string
+    }
+}
 interface DocxImage extends DocxBlock {
     image: {
         width: number,
@@ -212,6 +218,18 @@ export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: 
                 md += "---\n\n"
                 break
             }
+            case BlockType.view: {
+                md += await convertDocxToMD(ele.block_id, blocks, zip, access)
+                break
+            }
+            case BlockType.file: {
+                const e = ele as DocxFile
+                const name = e.file.name
+                const token = e.file.token
+                const path = await downloadAsset(token, access, zip, name)
+                md += `[${name}](assets/${path})`
+                break
+            }
             default:
                 break;
         }
@@ -222,8 +240,8 @@ export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: 
 const tmp = localforage.createInstance({
     name: 'file_cache'
 })
-async function downloadAsset(id: string, token: string, zip: JSZip) {
-    let c = await tmp.getItem<TmpFile>(id)
+async function downloadAsset(token: string, user_access: string, zip: JSZip, name?: string) {
+    let c = await tmp.getItem<TmpFile>(token)
     let ext = ""
     if (c) {
         let mime = c.mime
@@ -231,11 +249,11 @@ async function downloadAsset(id: string, token: string, zip: JSZip) {
             ext = ".png"
         else if (mime == 'image/jpeg' || mime == 'image/jpg')
             ext = ".jpg"
-        zip.folder("assets")?.file(id + ext, c.data)
+        zip.folder("assets")?.file(name ? (token + "_" + name) : (token + ext), c.data)
     } else {
-        let r = await axios.get(feishu_api(`/drive/v1/medias/${id}/download`),
+        let r = await axios.get(feishu_api(`/drive/v1/medias/${token}/download`),
             {
-                headers: { 'Authorization': 'Bearer ' + token },
+                headers: { 'Authorization': 'Bearer ' + user_access },
                 responseType: 'arraybuffer'
             })
         let mime = r.headers['content-type']
@@ -245,14 +263,14 @@ async function downloadAsset(id: string, token: string, zip: JSZip) {
         else if (mime == 'image/jpeg' || mime == 'image/jpg')
             ext = ".jpg"
         const data = new Uint8Array(r.data)
-        zip.folder("assets")?.file(id + ext, data)
-        await tmp.setItem(id, {
+        zip.folder("assets")?.file(name ? (token + "_" + name) : (token + ext), data)
+        await tmp.setItem(token, {
             mime: mime,
             data: data
         })
     }
 
-    return id + ext
+    return name ? (token + "_" + name) : (token + ext)
 }
 
 enum BlockType {
@@ -271,7 +289,7 @@ enum BlockType {
     orderList,      //
     code,           //
     ref = 15,       //
-    equation,           
+    equation,
     todo,           //
     bitable,
     callout,
