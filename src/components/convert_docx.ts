@@ -290,10 +290,12 @@ async function downloadAsset(token: string, user_access: string, zip: JSZip, nam
     let ext = ""
     if (c) {
         let mime = c.mime
-        if (mime == 'image/png')
-            ext = ".png"
-        else if (mime == 'image/jpeg' || mime == 'image/jpg')
-            ext = ".jpg"
+        const mtype = mime.split("/")
+        if(mtype.length === 2) {
+            ext = "." + mtype[1]
+        }else{
+            console.log(mtype)
+        }
         zip.folder("assets")?.file(name ? (token + "_" + name) : (token + ext), c.data)
     } else {
         let r = await axios.get(feishu_api(`/drive/v1/medias/${token}/download`),
