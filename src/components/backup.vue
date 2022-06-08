@@ -154,7 +154,9 @@ const handleLoadDocFolder = async (option: any) => {
     </div>
     <n-modal v-model:show="downloading" :mask-closable="false" title="下载中" @positive-click="closeDownloadModel"
         size="huge" :style="{ width: '400px', maxHeight: '600px' }">
-        <n-card>
+        <n-card :style="{
+            overflow: 'scroll'
+        }">
             <template #header>下载中</template>
             <p v-for="item in downloadingList">{{ item }}</p>
             <template #footer>
