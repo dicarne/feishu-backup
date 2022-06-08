@@ -249,7 +249,7 @@ export class FeishuService {
             console.log(error)
             zip.file(mdname, JSON.stringify({ error: error, msg: "convert error" }))
         }
-        this.downloadingCallback?.(name)
+        this.downloadingCallback?.(filename)
     }
 
     async _save_docx(token: string, filename: string, user_access: string, zip: JSZip) {
@@ -264,7 +264,7 @@ export class FeishuService {
             zip.file(mdname, JSON.stringify({ error: e, msg: "convert error" }))
             console.error(e)
         }
-        this.downloadingCallback?.(name)
+        this.downloadingCallback?.(filename)
     }
 
     async get_some_docs(user_access: string, docs: string[], convert_md: boolean = true): Promise<Blob> {
