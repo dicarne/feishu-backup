@@ -4,7 +4,7 @@ import { Converter } from "./converter";
 import secret from "../../secret"
 import { MyTreeSelectOption } from "./interface";
 import { stringNullIsDefault } from "../lib/stringUtil";
-import { convertDocxToMD } from "./convert_docx";
+import { ConvertDocxToMD } from "./convert_docx";
 
 export function feishu_api(url: string) {
     //return "api"

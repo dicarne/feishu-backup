@@ -1,4 +1,4 @@
-import axios from "axios"
+import axios, { AxiosResponse } from "axios"
 import JSZip from "jszip"
 import localforage from "localforage"
 import { feishu_api } from "./api"
@@ -112,7 +112,7 @@ function convertElements(ele: element[]) {
 
 export async function ConvertDocxToMD(ctx0: ConvertContextArg, parent: string, blocks: DocxBlock[], zip: JSZip, access: string, args?: { parent_prefix?: string, nonewline?: boolean }) {
     const r = await convertDocxToMD(ctx0, parent, blocks, zip, access, args)
-    await Promise.all(ctx0.async_tasks)
+    await Promise.all(ctx0.async_tasks || [])
     return r
 }
 
@@ -123,6 +123,7 @@ async function convertDocxToMD(ctx0: ConvertContextArg, parent: string, blocks: 
         output_raw: ctx0.output_raw ?? false,
         async_tasks: ctx0.async_tasks ?? []
     }
+    ctx0.async_tasks = ctx.async_tasks
     for (const ele of blocks) {
         if (ele.parent_id != parent) {
             continue
@@ -333,11 +334,28 @@ async function downloadAsset(ctx: ConvertContext, token: string, user_access: st
                 mime: mime,
                 data: data
             })
+            return r
         }
-        ctx.async_tasks.push(task())
+        await makeQPScall(4, ctx, task)
     }
 
     return name ? (token + "_" + name) : (token + ext)
+}
+
+async function makeQPScall(qps: number, ctx: ConvertContext, func: () => Promise<AxiosResponse<any, any>>) {
+    if (ctx.async_tasks.length >= qps) {
+        await Promise.allSettled(ctx.async_tasks)
+        ctx.async_tasks = []
+    }
+    const callf = async () => {
+        try {
+            const p = await func()
+        } catch (error) {
+            makeQPScall(qps, ctx, func)
+        }
+
+    }
+    ctx.async_tasks.push(callf())
 }
 
 enum BlockType {
