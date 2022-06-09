@@ -258,7 +258,7 @@ export class FeishuService {
         let mdname = this.zipfileName(filename, zip, ".md")
         zip.file(name, JSON.stringify({ nodes: content, type: "docx" }))
         try {
-            zip.file(mdname, await convertDocxToMD("", content, zip, user_access))
+            zip.file(mdname, await ConvertDocxToMD({}, "", content, zip, user_access))
         }
         catch (e) {
             zip.file(mdname, JSON.stringify({ error: e, msg: "convert error" }))

@@ -3,7 +3,14 @@ import JSZip from "jszip"
 import localforage from "localforage"
 import { feishu_api } from "./api"
 import { TmpFile } from "./converter"
-
+interface ConvertContextArg {
+    output_raw?: boolean
+    async_tasks?: Promise<void>[]
+}
+interface ConvertContext {
+    output_raw: boolean
+    async_tasks: Promise<void>[]
+}
 
 export interface DocxBlock {
     block_id: string
@@ -103,9 +110,19 @@ function convertElements(ele: element[]) {
     return md
 }
 
-export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: JSZip, access: string, args?: { parent_prefix?: string, nonewline?: boolean }) {
+export async function ConvertDocxToMD(ctx0: ConvertContextArg, parent: string, blocks: DocxBlock[], zip: JSZip, access: string, args?: { parent_prefix?: string, nonewline?: boolean }) {
+    const r = await convertDocxToMD(ctx0, parent, blocks, zip, access, args)
+    await Promise.all(ctx0.async_tasks)
+    return r
+}
+
+async function convertDocxToMD(ctx0: ConvertContextArg, parent: string, blocks: DocxBlock[], zip: JSZip, access: string, args?: { parent_prefix?: string, nonewline?: boolean }) {
     let tmd = ""
     let continue_block_type = 0
+    const ctx: ConvertContext = {
+        output_raw: ctx0.output_raw ?? false,
+        async_tasks: ctx0.async_tasks ?? []
+    }
     for (const ele of blocks) {
         if (ele.parent_id != parent) {
             continue
@@ -127,7 +144,7 @@ export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: 
             case BlockType.page: {
                 const e = ele as DocxPage
                 md += "# " + convertElements(e.page.elements) + "\n\n"
-                md += await convertDocxToMD(e.block_id, blocks, zip, access)
+                md += await convertDocxToMD(ctx, e.block_id, blocks, zip, access)
             }
                 break;
             case BlockType.text: {
@@ -211,21 +228,21 @@ export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: 
             case BlockType.quote: {
                 continue_block_type = BlockType.quote
                 const e = ele.children
-                md += await convertDocxToMD(ele.block_id, blocks, zip, access, { parent_prefix: "> " }) + "\n"
+                md += await convertDocxToMD(ctx, ele.block_id, blocks, zip, access, { parent_prefix: "> " }) + "\n"
                 break
             }
             case BlockType.image: {
                 const e = ele as DocxImage
-                const filename = await downloadAsset(e.image.token, access, zip)
+                const filename = await downloadAsset(ctx, e.image.token, access, zip)
                 md += `![](assets/${filename})\n\n`
                 break
             }
             case BlockType.grid: {
-                md += await convertDocxToMD(ele.block_id, blocks, zip, access)
+                md += await convertDocxToMD(ctx, ele.block_id, blocks, zip, access)
                 break
             }
             case BlockType.grid_column: {
-                md += await convertDocxToMD(ele.block_id, blocks, zip, access)
+                md += await convertDocxToMD(ctx, ele.block_id, blocks, zip, access)
                 break;
             }
             case BlockType.divider: {
@@ -233,14 +250,14 @@ export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: 
                 break
             }
             case BlockType.view: {
-                md += await convertDocxToMD(ele.block_id, blocks, zip, access)
+                md += await convertDocxToMD(ctx, ele.block_id, blocks, zip, access)
                 break
             }
             case BlockType.file: {
                 const e = ele as DocxFile
                 const name = e.file.name
                 const token = e.file.token
-                const path = await downloadAsset(token, access, zip, name)
+                const path = await downloadAsset(ctx, token, access, zip, name)
                 md += `[${name}](assets/${path})`
                 break
             }
@@ -259,7 +276,7 @@ export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: 
                         if (!it) {
                             md += "  |"
                         } else {
-                            md += await convertDocxToMD(it.block_id, blocks, zip, access, {
+                            md += await convertDocxToMD(ctx, it.block_id, blocks, zip, access, {
                                 nonewline: true
                             }) + " |"
                         }
@@ -285,36 +302,39 @@ export async function convertDocxToMD(parent: string, blocks: DocxBlock[], zip: 
 const tmp = localforage.createInstance({
     name: 'file_cache'
 })
-async function downloadAsset(token: string, user_access: string, zip: JSZip, name?: string) {
+async function downloadAsset(ctx: ConvertContext, token: string, user_access: string, zip: JSZip, name?: string) {
     let c = await tmp.getItem<TmpFile>(token)
     let ext = ""
     if (c) {
         let mime = c.mime
         const mtype = mime.split("/")
-        if(mtype.length === 2) {
+        if (mtype.length === 2) {
             ext = "." + mtype[1]
-        }else{
+        } else {
             console.log(mtype)
         }
         zip.folder("assets")?.file(name ? (token + "_" + name) : (token + ext), c.data)
     } else {
-        let r = await axios.get(feishu_api(`/drive/v1/medias/${token}/download`),
-            {
-                headers: { 'Authorization': 'Bearer ' + user_access },
-                responseType: 'arraybuffer'
-            })
-        let mime = r.headers['content-type']
+        const task = async () => {
+            let r = await axios.get(feishu_api(`/drive/v1/medias/${token}/download`),
+                {
+                    headers: { 'Authorization': 'Bearer ' + user_access },
+                    responseType: 'arraybuffer'
+                })
+            let mime = r.headers['content-type']
 
-        if (mime == 'image/png')
-            ext = ".png"
-        else if (mime == 'image/jpeg' || mime == 'image/jpg')
-            ext = ".jpg"
-        const data = new Uint8Array(r.data)
-        zip.folder("assets")?.file(name ? (token + "_" + name) : (token + ext), data)
-        await tmp.setItem(token, {
-            mime: mime,
-            data: data
-        })
+            if (mime == 'image/png')
+                ext = ".png"
+            else if (mime == 'image/jpeg' || mime == 'image/jpg')
+                ext = ".jpg"
+            const data = new Uint8Array(r.data)
+            zip.folder("assets")?.file(name ? (token + "_" + name) : (token + ext), data)
+            await tmp.setItem(token, {
+                mime: mime,
+                data: data
+            })
+        }
+        ctx.async_tasks.push(task())
     }
 
     return name ? (token + "_" + name) : (token + ext)
