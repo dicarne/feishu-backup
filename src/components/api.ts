@@ -6,13 +6,23 @@ import { MyTreeSelectOption } from "./interface";
 import { stringNullIsDefault } from "../lib/stringUtil";
 import { ConvertDocxToMD } from "./convert_docx";
 
+export const config = { APIFallback: false }
+
 export function feishu_api(url: string) {
     //return "api"
-    return secret.baseUrl + url
+    if (!config.APIFallback)
+        return secret.baseUrl + url
+    else {
+        return (secret.fall_back_baseUrl ?? secret.baseUrl) + url
+    }
 }
 
 function feishu_api_noauth(url: string) {
-    return secret.baseUrl_noauth + url
+    if (!config.APIFallback)
+        return secret.baseUrl_noauth + url
+    else {
+        return (secret.fall_back_baseUrl_noauth ?? secret.baseUrl_noauth) + url
+    }
 }
 
 export interface UserLogin {

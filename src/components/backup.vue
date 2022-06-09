@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import { NButton, NSpace, NList, NListItem, NThing, NModal, NCard, NCascader, useMessage, useDialog } from 'naive-ui'
-import { onMounted, Ref, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { FeishuService, WikiRecord } from './api';
+import { FeishuService, WikiRecord, config } from './api';
 import { saveAs } from 'file-saver'
 import { useLocalStorage } from './hooks';
 import { MyTreeSelectOption } from './interface'
@@ -28,13 +28,32 @@ const doc_options_value = ref<any>(null)
 
 onMounted(async () => {
     if (code) {
-        app_id = app_id as string
-        app_secret = app_secret as string
-        const token = await feishu.app_login(app_id, app_secret)
-        userToken.value = (await feishu.user_login(code, token)).access_token
-        let loc = window.location
-        window.location.replace(`${loc.origin}${loc.pathname}#/backup/${app_id}/${app_secret}?access_token=${userToken.value}`)
-        console.log(userToken.value)
+        let peding = true
+        const task = async () => {
+            app_id = app_id as string
+            app_secret = app_secret as string
+            const token = await feishu.app_login(app_id, app_secret)
+            const access = (await feishu.user_login(code, token)).access_token
+            if (peding) {
+                peding = false
+
+                userToken.value = access
+                let loc = window.location
+                window.location.replace(`${loc.origin}${loc.pathname}#/backup/${app_id}/${app_secret}?access_token=${userToken.value}`)
+                console.log(userToken.value)
+            }
+        }
+        setTimeout(async () => {
+            if (peding) {
+                peding = false
+                config.APIFallback = true
+                peding = true
+                console.log("use fallback api")
+                await task()
+                console.log("use fallback api success")
+            }
+        }, 1000);
+        await task()
     }
 })
 
