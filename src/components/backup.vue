@@ -52,7 +52,7 @@ onMounted(async () => {
                 await task()
                 console.log("use fallback api success")
             }
-        }, 1000);
+        }, 5000);
         await task()
     }
 })
