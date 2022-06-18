@@ -65,18 +65,52 @@ markdown不能很好的支持所有富文本元素，例如多列布局等。虽
 打开这个链接，然后授权，点击按钮，等待下载。
 
 ### 部署
-`feishu-backup-web`下
-
-创建`secret.ts`，导出`baseUrl`和`baseUrl_noauth`两个url作为飞书api的代理，一个接收有auth头的请求，一个接受没有auth头的请求。可以用你自己服务器代理，也可以用别的。我用的是腾讯云API网关，还挺好用。url应该代理到`https://open.feishu.cn/open-apis`。
-
+#### 1. 准备
 ```
+git clone https://github.com/dicarne/feishu-backup.git
 pnpm i
-pnpm run build
 ```
 
-然后把`dist`下的生成文件放到你的网页文件夹中。
+#### 2. 修改base url
+修改`.env`中的`VITE_BASEURL`，改成你需要的路径。这跟你的Nginx之类的网页服务器的配置有关。形如`https://your.domain/AAA/BBB/CCC/#/...`中的`/AAA/BBB/CCC`就是base url。如果不需要的话，简单改成`/`应该就行了。
 
-默认是有一段前缀路由的：`/tool/feishu-backup/api/`，所以请求形如`https://your_domain/tool/feishu-backup/api/#/...`。注意需要在`nginx`中配置一下，或者自己改一下路由。
+#### 3. 创建secret.ts
+这是用于声明你的API转发URL，需要支持CORS。之所以需要转发，就是因为要避免跨域的问题。可以在配置Nginx的时候顺便写了，简单地转发请求的一切内容即可。`baseUrl`需要Auth头，`baseUrl_noauth`不需要Auth头，这在某些情况下有用，如果你用Nginx转发的话，两个都写一样就好了。
+
+`/secret.ts`内容如下：
+```
+import { Secret } from './secret_interface'
+export default {
+    baseUrl: "http://your.domain/YOUR_URL",
+    baseUrl_noauth: "http://your.domain/YOUR_URL"
+} as Secret
+```
+
+#### 4. 打包
+`pnpm run build`，打包文件在`/dist`目录下，复制到你的静态网页文件夹中。
+
+别忘了配置你的Nginx！Nginx需要为你的静态网页提供服务，也需要配置`proxy_pass`来转发请求！
+
+配置网页的Nginx例子：
+```
+location /your_base_url/ {
+                alias /web/feishu-backup/;  # 你的静态网页路径
+                index index.html;
+        }
+```
+
+配置转发的Nginx例子：
+```
+location /your_url {
+                add_header Access-Control-Allow-Origin *;
+                add_header Access-Control-Allow-Methods 'GET, POST, OPTIONS';
+                add_header Access-Control-Allow-Headers 'DNT,X-Mx-ReqToken,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization';
+                if ($request_method = 'OPTIONS') {
+                        return 204;
+                }
+                proxy_pass https://open.feishu.cn/open-apis;
+        }
+```
 
 ## TODO
 暂时只支持部分我需要的格式转换，所以很多格式都是跳过的。
