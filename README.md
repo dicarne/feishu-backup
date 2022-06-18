@@ -160,3 +160,4 @@ location /your_url {
 | table       | 表格 Block                          | 支持，但不能合并
 | table_cell  | 单元格 Block                        | 支持
 | view        | 视图 Block                          |
+|             | 网页卡片                            | 不支持
