@@ -291,6 +291,8 @@ export class FeishuService {
                 await this.save_doc(j, user_access, zip, convert)
             } else if (j.type === "docx") {
                 await this.save_docx(j, user_access, zip)
+            } else if(j.type === "folder") {
+                await this._r_docs_in_folder(j.token, user_access, zip, convert)
             }
 
         }
