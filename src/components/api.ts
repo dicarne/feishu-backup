@@ -1,10 +1,11 @@
 import axios from "axios";
 import JSZip from "jszip";
-import { Converter } from "./converter";
+import { Converter, TmpFile } from "./converter";
 import secret from "../../secret"
 import { MyTreeSelectOption } from "./interface";
 import { stringNullIsDefault } from "../lib/stringUtil";
 import { ConvertDocxToMD } from "./convert_docx";
+import localforage from "localforage";
 
 export const config = { APIFallback: false }
 
@@ -113,7 +114,9 @@ export class DocTree {
     }
 }
 
-
+const tmp = localforage.createInstance({
+    name: 'file_cache'
+})
 
 export class FeishuService {
     convert = true
@@ -212,13 +215,50 @@ export class FeishuService {
         return blocks
     }
 
+    async get_file(token: string, user_access: string, zip: JSZip, name?: string) {
+        let c = await tmp.getItem<TmpFile>(token)
+        let ext = ""
+        if (c) {
+            let mime = c.mime
+            const mtype = mime.split("/")
+            if (mtype.length === 2) {
+                ext = "." + mtype[1]
+            } else {
+                console.log(mtype)
+            }
+            zip.file(name ? name : (token + ext), c.data)
+        } else {
+            const task = async () => {
+                let r = await axios.get(feishu_api(`/drive/v1/files/${token}/download`),
+                    {
+                        headers: { 'Authorization': 'Bearer ' + user_access },
+                        responseType: 'arraybuffer'
+                    })
+                let mime = r.headers['content-type']
+
+                if (mime == 'image/png')
+                    ext = ".png"
+                else if (mime == 'image/jpeg' || mime == 'image/jpg')
+                    ext = ".jpg"
+                const data = new Uint8Array(r.data)
+                zip.file(name ? name : (token + ext), data)
+                await tmp.setItem(token, {
+                    mime: mime,
+                    data: data
+                })
+                return r
+            }
+            await task();
+        }
+
+        return name ? (token + "_" + name) : (token + ext)
+    }
+
     async get_all_docs(user_access: string, convert_md: boolean): Promise<Blob> {
         const zipfile = new JSZip()
         const convert = new Converter()
         this.convert = convert_md
-        //console.log(user_access)
         const root = await this.get_root_folder(user_access)
-        //zipfile.file("__user_token__", user_access)
         await this._r_docs_in_folder(root.token, user_access, zipfile, convert)
         return await zipfile.generateAsync({ type: 'blob' })
     }
@@ -291,10 +331,11 @@ export class FeishuService {
                 await this.save_doc(j, user_access, zip, convert)
             } else if (j.type === "docx") {
                 await this.save_docx(j, user_access, zip)
-            } else if(j.type === "folder") {
+            } else if (j.type === "folder") {
                 await this._r_docs_in_folder(j.token, user_access, zip, convert)
+            } else if (j.type === "file") {
+                await this.get_file(j.token, user_access, zip, j.name)
             }
-
         }
 
         return await zipfile.generateAsync({ type: 'blob' })
@@ -317,6 +358,8 @@ export class FeishuService {
                 await this._r_docs_in_folder(file.token, user_access, fzip!, convert)
             } else if (file.type === 'docx') {
                 await this.save_docx(fd, user_access, zipfile)
+            } else if (file.type === "file") {
+                await this.get_file(file.token, user_access, zipfile, file.name)
             }
         }
     }
@@ -360,6 +403,19 @@ export class FeishuService {
                     })
                 }
                 folder_promise.push(f())
+            } else if (file.type === "file") {
+                let mj: FolderTokenJson = {
+                    token: file.token,
+                    path: [...j.path],
+                    name: file.name,
+                    type: file.type
+                }
+                options.push({
+                    label: stringNullIsDefault(file.name, "未命名文件"),
+                    value: JSON.stringify(mj),
+                    isLeaf: true,
+                    depth: depth + 1
+                })
             }
         }
         await Promise.all(folder_promise)
@@ -368,8 +424,6 @@ export class FeishuService {
 
     async get_all_docs_list(user_access: string): Promise<MyTreeSelectOption[]> {
         const root = await this.get_root_folder(user_access)
-        //let tree = new DocTree('dir', root.token, "root")
-        //await this._r_docs_in_folder_list(root.token, user_access, tree)
         let mj: FolderTokenJson = {
             token: root.token,
             path: [],
