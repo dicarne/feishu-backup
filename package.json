@@ -12,17 +12,17 @@
         "file-saver": "^2.0.5",
         "jszip": "^3.10.0",
         "localforage": "^1.10.0",
-        "pnpm": "^6.32.22",
+        "pnpm": "^6.32.25",
         "vue": "^3.2.37",
-        "vue-router": "^4.0.16"
+        "vue-router": "^4.1.0"
     },
     "devDependencies": {
         "@types/file-saver": "^2.0.5",
         "@vitejs/plugin-vue": "^1.10.2",
-        "naive-ui": "^2.30.4",
+        "naive-ui": "^2.30.8",
         "typescript": "^4.7.4",
         "vfonts": "^0.1.0",
-        "vite": "^2.9.12",
+        "vite": "^2.9.13",
         "vue-tsc": "^0.3.0"
     }
 }
