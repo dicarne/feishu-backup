@@ -67,6 +67,12 @@ interface element {
     equation?: {
         content: string
     }
+    mention_doc?: {
+        obj_type: number
+        title: string
+        token: string
+        url: string
+    }
 }
 enum textStyle {
     left = 1,
@@ -105,6 +111,9 @@ function convertElements(ele: element[]) {
             md += ct
         } else if (e.equation) {
             md += "$" + e.equation.content.trim() + "$"
+        } else if (e.mention_doc) {
+            const mc = e.mention_doc!
+            md +=  `[${mc.title}](${decodeURIComponent(mc.url)})`
         }
     }
     return md
