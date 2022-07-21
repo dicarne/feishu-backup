@@ -16,8 +16,11 @@ const feishu = new FeishuService((fname: string) => {
 })
 
 if (!code && router.query.access_token) {
+    console.log(router.query.refresh_token)
     feishu.user_access_token = router.query.access_token as string
     feishu.refresh_token = router.query.refresh_token as string
+    feishu.app_id = app_id as string
+    feishu.app_secret = app_secret as string
 }
 const downloadingList = ref<string[]>([])
 
@@ -39,7 +42,7 @@ const login = async () => {
             if (peding) {
                 peding = false
                 let loc = window.location
-                window.location.replace(`${loc.origin}${loc.pathname}#/backup/${app_id}/${app_secret}?access_token=${access}?refresh_token=${access_token_resp.refresh_token}`)
+                window.location.replace(`${loc.origin}${loc.pathname}#/backup/${app_id}/${app_secret}?access_token=${access}&refresh_token=${access_token_resp.refresh_token}`)
             }
         }
         setTimeout(async () => {

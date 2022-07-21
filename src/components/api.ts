@@ -140,9 +140,7 @@ export class FeishuService {
         if (!this.tenant_expires_in || this.tenant_expires_in < Date.now()) {
             await this.app_login()
         }
-        if (!this.user_expires_in) {
-            throw new Error("不应该未登录")
-        } else if (this.user_expires_in < Date.now()) {
+        if (!this.user_expires_in || this.user_expires_in < Date.now()) {
             await this.refresh_user_access(this.refresh_token!, this.tenant_access_token!)
         }
         return this.user_access_token!
@@ -193,8 +191,8 @@ export class FeishuService {
 
     async refresh_user_access(user_refreash_code: string, server_token: string): Promise<UserLogin> {
         let r = await axios.post(feishu_api("/authen/v1/refresh_access_token"), {
-            "grant_type": "refresh_access_token",
-            "code": user_refreash_code
+            "grant_type": "refresh_token",
+            "refresh_token": user_refreash_code
         }, {
             headers: {
                 "Authorization": `Bearer ${server_token}`
