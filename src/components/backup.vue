@@ -56,8 +56,6 @@ const login = async () => {
     }
 }
 
-setTimeout(login, 20 * 60 * 1000);
-
 onMounted(login)
 
 const SaveFile = async () => {
