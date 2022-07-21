@@ -29,24 +29,36 @@ const downloading = ref(false)
 const page = ref<'docs' | 'wiki' | 'none'>('none')
 const doc_options = ref<MyTreeSelectOption[]>()
 const doc_options_value = ref<any>(null)
+const peding = ref(false)
+const loading_text = ref("登陆中")
 const login = async () => {
     if (code && window.localStorage.getItem("code") != code) {
-        let peding = true
+        peding.value = true
         const task = async () => {
             app_id = app_id as string
             app_secret = app_secret as string
-            const token = await feishu.app_login(app_id, app_secret)
-            await feishu.user_login(code, token)
-            if (peding) {
-                window.localStorage.setItem("code", code)
-                peding = false
+            try {
+                const token = await feishu.app_login(app_id, app_secret)
+                await feishu.user_login(code, token)
+                if (peding.value) {
+                    window.localStorage.setItem("code", code)
+                    peding.value = false
+                }
+            } catch (error) {
+                if (error instanceof Error) {
+                    loading_text.value = error.message
+                    message.error(error.message)
+                } else {
+                    loading_text.value = "未知错误"
+                }
+
             }
+
         }
         setTimeout(async () => {
-            if (peding) {
-                peding = false
+            if (peding.value) {
                 config.APIFallback = true
-                peding = true
+                peding.value = true
                 console.log("use fallback api")
                 await task()
                 console.log("use fallback api success")
@@ -186,6 +198,12 @@ const handleLoadDocFolder = async (option: any) => {
             <template #footer>
                 <n-button :loading="downloading">完成</n-button>
             </template>
+        </n-card>
+    </n-modal>
+    <n-modal v-model:show="peding" :mask-closable="false" title="登录中" size="huge"
+        :style="{ width: '400px', maxHeight: '600px' }">
+        <n-card>
+            <template #header>{{ loading_text }}</template>
         </n-card>
     </n-modal>
 </template>
