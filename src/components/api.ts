@@ -186,6 +186,10 @@ export class FeishuService {
         this.user_expires_in = Date.now() + (user.expires_in - 20 * 60) * 1000
         this.user_access_token = user.access_token
         this.refresh_token = user.refresh_token
+
+        
+        window.localStorage.setItem("user_access_token", user.access_token)
+        window.localStorage.setItem("refresh_token", user.refresh_token)
         return user
     }
 
@@ -202,6 +206,10 @@ export class FeishuService {
         const user = r.data.data as UserLogin
         this.user_expires_in = Date.now() + (user.expires_in - 20 * 60) * 1000
         this.user_access_token = user.access_token
+        this.refresh_token = user.refresh_token
+
+        window.localStorage.setItem("user_access_token", user.access_token)
+        window.localStorage.setItem("refresh_token", user.refresh_token)
         return user
     }
 

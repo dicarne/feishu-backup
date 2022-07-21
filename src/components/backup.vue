@@ -15,10 +15,9 @@ const feishu = new FeishuService((fname: string) => {
     downloadingList.value.push(fname)
 })
 
-if (!code && router.query.access_token) {
-    console.log(router.query.refresh_token)
-    feishu.user_access_token = router.query.access_token as string
-    feishu.refresh_token = router.query.refresh_token as string
+if (code && window.localStorage.getItem("code") == code) {
+    feishu.user_access_token = window.localStorage.getItem("user_access_token") as string
+    feishu.refresh_token = window.localStorage.getItem("refresh_token") as string
     feishu.app_id = app_id as string
     feishu.app_secret = app_secret as string
 }
@@ -31,18 +30,16 @@ const page = ref<'docs' | 'wiki' | 'none'>('none')
 const doc_options = ref<MyTreeSelectOption[]>()
 const doc_options_value = ref<any>(null)
 const login = async () => {
-    if (code) {
+    if (code && window.localStorage.getItem("code") != code) {
         let peding = true
         const task = async () => {
             app_id = app_id as string
             app_secret = app_secret as string
             const token = await feishu.app_login(app_id, app_secret)
-            const access_token_resp = (await feishu.user_login(code, token))
-            const access = access_token_resp.access_token
+            await feishu.user_login(code, token)
             if (peding) {
+                window.localStorage.setItem("code", code)
                 peding = false
-                let loc = window.location
-                window.location.replace(`${loc.origin}${loc.pathname}#/backup/${app_id}/${app_secret}?access_token=${access}&refresh_token=${access_token_resp.refresh_token}`)
             }
         }
         setTimeout(async () => {
