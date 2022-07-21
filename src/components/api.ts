@@ -26,8 +26,12 @@ function feishu_api_noauth(url: string) {
     }
 }
 
+
+
 export interface UserLogin {
     access_token: string
+    refresh_token: string
+    expires_in: number
 }
 
 export interface RootFolder {
@@ -125,21 +129,48 @@ export class FeishuService {
         this.downloadingCallback = downloadingCallback
     }
 
-    async get_root_folder(user_token: string): Promise<RootFolder> {
+    tenant_access_token?: string
+    user_access_token?: string
+    tenant_expires_in?: number
+    user_expires_in?: number
+    refresh_token?: string
+    app_id?: string
+    app_secret?: string
+    async userAccess(): Promise<string> {
+        if (!this.tenant_expires_in || this.tenant_expires_in < Date.now()) {
+            await this.app_login()
+        }
+        if (!this.user_expires_in) {
+            throw new Error("不应该未登录")
+        } else if (this.user_expires_in < Date.now()) {
+            await this.refresh_user_access(this.refresh_token!, this.tenant_access_token!)
+        }
+        return this.user_access_token!
+    }
+
+    async get_root_folder(): Promise<RootFolder> {
         let r = await axios.get(feishu_api("/drive/explorer/v2/root_folder/meta"), {
             headers: {
-                "Authorization": `Bearer ${user_token}`
+                "Authorization": `Bearer ${await this.userAccess()}`
             }
         })
         return r.data.data
     }
 
-    async app_login(app_id: string, app_secret: string): Promise<string> {
+    async app_login(app_id?: string, app_secret?: string): Promise<string> {
+        if (!app_id) {
+            app_id = this.app_id
+            app_secret = this.app_secret
+        }
         let r = await axios.post(feishu_api_noauth("/auth/v3/tenant_access_token/internal/"), {
             app_id: app_id,
             app_secret: app_secret
         })
         let token = r.data
+        this.tenant_expires_in = Date.now() + (token.expire - 20 * 60) * 1000
+        this.app_id = app_id
+        this.app_secret = app_secret
+        this.tenant_access_token = token.tenant_access_token
         return token.tenant_access_token
     }
 
@@ -153,39 +184,59 @@ export class FeishuService {
             }
         })
         if (r.data?.code) console.log(r.data)
-        return r.data.data
+        const user = r.data.data as UserLogin
+        this.user_expires_in = Date.now() + (user.expires_in - 20 * 60) * 1000
+        this.user_access_token = user.access_token
+        this.refresh_token = user.refresh_token
+        return user
     }
 
-    async get_folder_meta(folder_token: string, user_token: string): Promise<FolderMeta> {
+    async refresh_user_access(user_refreash_code: string, server_token: string): Promise<UserLogin> {
+        let r = await axios.post(feishu_api("/authen/v1/refresh_access_token"), {
+            "grant_type": "refresh_access_token",
+            "code": user_refreash_code
+        }, {
+            headers: {
+                "Authorization": `Bearer ${server_token}`
+            }
+        })
+        if (r.data?.code) console.log(r.data)
+        const user = r.data.data as UserLogin
+        this.user_expires_in = Date.now() + (user.expires_in - 20 * 60) * 1000
+        this.user_access_token = user.access_token
+        return user
+    }
+
+    async get_folder_meta(folder_token: string): Promise<FolderMeta> {
         let r = await axios.get(feishu_api(`/drive/explorer/v2/folder/${folder_token}/meta`), {
             headers: {
-                "Authorization": `Bearer ${user_token}`
+                "Authorization": `Bearer ${await this.userAccess()}`
             }
         })
         return r.data.data
     }
 
-    async get_files_in_folder(folder_token: string, user_token: string): Promise<FolderData> {
+    async get_files_in_folder(folder_token: string): Promise<FolderData> {
         let r = await axios.get(feishu_api(`/drive/explorer/v2/folder/${folder_token}/children`), {
             headers: {
-                "Authorization": `Bearer ${user_token}`
+                "Authorization": `Bearer ${await this.userAccess()}`
             }
         })
         return r.data.data
     }
 
-    async get_doc(doc_token: string, user_token: string): Promise<DocContentWrapper> {
+    async get_doc(doc_token: string): Promise<DocContentWrapper> {
         let r = await axios.get(feishu_api(`/doc/v2/${doc_token}/content`), {
             headers: {
-                "Authorization": `Bearer ${user_token}`
+                "Authorization": `Bearer ${await this.userAccess()}`
             }
         })
         return r.data.data
     }
-    async get_docx_next(doc_token: string, user_token: string, page_token: string): Promise<any[]> {
+    async get_docx_next(doc_token: string, page_token: string): Promise<any[]> {
         let r = await axios.get(feishu_api(`/docx/v1/documents/${doc_token}/blocks?page_token=${page_token}`), {
             headers: {
-                "Authorization": `Bearer ${user_token}`
+                "Authorization": `Bearer ${await this.userAccess()}`
             }
         })
 
@@ -193,15 +244,15 @@ export class FeishuService {
         let blocks = d.items
         if (d.has_more) {
             const page_token = d.page_token
-            const next = await this.get_docx_next(doc_token, user_token, page_token)
+            const next = await this.get_docx_next(doc_token, page_token)
             blocks = [...blocks, ...next]
         }
         return blocks
     }
-    async get_docx(doc_token: string, user_token: string): Promise<any[]> {
+    async get_docx(doc_token: string): Promise<any[]> {
         let r = await axios.get(feishu_api(`/docx/v1/documents/${doc_token}/blocks`), {
             headers: {
-                "Authorization": `Bearer ${user_token}`
+                "Authorization": `Bearer ${await this.userAccess()}`
             }
         })
 
@@ -209,13 +260,13 @@ export class FeishuService {
         let blocks = d.items
         if (d.has_more) {
             const page_token = d.page_token
-            const next = await this.get_docx_next(doc_token, user_token, page_token)
+            const next = await this.get_docx_next(doc_token, page_token)
             blocks = [...blocks, ...next]
         }
         return blocks
     }
 
-    async get_file(token: string, user_access: string, zip: JSZip, name?: string) {
+    async get_file(token: string, zip: JSZip, name?: string) {
         let c = await tmp.getItem<TmpFile>(token)
         let ext = ""
         if (c) {
@@ -231,7 +282,7 @@ export class FeishuService {
             const task = async () => {
                 let r = await axios.get(feishu_api(`/drive/v1/files/${token}/download`),
                     {
-                        headers: { 'Authorization': 'Bearer ' + user_access },
+                        headers: { 'Authorization': 'Bearer ' + await this.userAccess() },
                         responseType: 'arraybuffer'
                     })
                 let mime = r.headers['content-type']
@@ -254,12 +305,12 @@ export class FeishuService {
         return name ? (token + "_" + name) : (token + ext)
     }
 
-    async get_all_docs(user_access: string, convert_md: boolean): Promise<Blob> {
+    async get_all_docs(convert_md: boolean): Promise<Blob> {
         const zipfile = new JSZip()
         const convert = new Converter()
         this.convert = convert_md
-        const root = await this.get_root_folder(user_access)
-        await this._r_docs_in_folder(root.token, user_access, zipfile, convert)
+        const root = await this.get_root_folder()
+        await this._r_docs_in_folder(root.token, zipfile, convert)
         return await zipfile.generateAsync({ type: 'blob' })
     }
 
@@ -274,27 +325,27 @@ export class FeishuService {
         name = name + rename + ext
         return name
     }
-    async save_doc(file: FolderTokenJson, user_access: string, zip: JSZip, convert: Converter) {
-        await this._save_doc(file.token, file.name, user_access, zip, convert)
+    async save_doc(file: FolderTokenJson, zip: JSZip, convert: Converter) {
+        await this._save_doc(file.token, file.name, zip, convert)
     }
-    async save_docx(file: FolderTokenJson, user_access: string, zip: JSZip) {
-        await this._save_docx(file.token, file.name, user_access, zip)
+    async save_docx(file: FolderTokenJson, zip: JSZip) {
+        await this._save_docx(file.token, file.name, zip)
     }
-    async save_doc_wiki(file: NodeRecord, user_access: string, zip: JSZip, convert: Converter) {
-        await this._save_doc(file.obj_token, file.title, user_access, zip, convert)
+    async save_doc_wiki(file: NodeRecord, zip: JSZip, convert: Converter) {
+        await this._save_doc(file.obj_token, file.title, zip, convert)
     }
-    async save_docx_wiki(file: NodeRecord, user_access: string, zip: JSZip) {
-        await this._save_docx(file.obj_token, file.title, user_access, zip)
+    async save_docx_wiki(file: NodeRecord, zip: JSZip) {
+        await this._save_docx(file.obj_token, file.title, zip)
     }
-    async _save_doc(token: string, filename: string, user_access: string, zip: JSZip, convert: Converter) {
-        const file_content = (await this.get_doc(token, user_access)).content
+    async _save_doc(token: string, filename: string, zip: JSZip, convert: Converter) {
+        const file_content = (await this.get_doc(token)).content
         let fileobj = JSON.parse(file_content)
 
         let name = this.zipfileName(filename, zip, ".json")
         let mdname = this.zipfileName(filename, zip, ".md")
         zip.file(name, JSON.stringify({ node: fileobj, type: "docx" }))
         try {
-            zip.file(mdname, (await convert.convert(user_access, zip, fileobj)).file)
+            zip.file(mdname, (await convert.convert(await this.userAccess(), zip, fileobj)).file)
         } catch (error) {
             console.log(error)
             zip.file(mdname, JSON.stringify({ error: error, msg: "convert error" }))
@@ -302,13 +353,13 @@ export class FeishuService {
         this.downloadingCallback?.(filename)
     }
 
-    async _save_docx(token: string, filename: string, user_access: string, zip: JSZip) {
-        const content = await this.get_docx(token, user_access)
+    async _save_docx(token: string, filename: string, zip: JSZip) {
+        const content = await this.get_docx(token)
         let name = this.zipfileName(filename, zip, ".json")
         let mdname = this.zipfileName(filename, zip, ".md")
         zip.file(name, JSON.stringify({ nodes: content, type: "docx" }))
         try {
-            zip.file(mdname, await ConvertDocxToMD({}, "", content, zip, user_access))
+            zip.file(mdname, await ConvertDocxToMD({}, "", content, zip, await this.userAccess()))
         }
         catch (e) {
             zip.file(mdname, JSON.stringify({ error: e, msg: "convert error" }))
@@ -317,7 +368,7 @@ export class FeishuService {
         this.downloadingCallback?.(filename)
     }
 
-    async get_some_docs(user_access: string, docs: string[], convert_md: boolean = true): Promise<Blob> {
+    async get_some_docs(docs: string[], convert_md: boolean = true): Promise<Blob> {
         const zipfile = new JSZip()
         const convert = new Converter()
         this.convert = convert_md
@@ -328,21 +379,21 @@ export class FeishuService {
                 zip = zip.folder(p)!
             }
             if (j.type === "doc") {
-                await this.save_doc(j, user_access, zip, convert)
+                await this.save_doc(j, zip, convert)
             } else if (j.type === "docx") {
-                await this.save_docx(j, user_access, zip)
+                await this.save_docx(j, zip)
             } else if (j.type === "folder") {
-                await this._r_docs_in_folder(j.token, user_access, zip, convert)
+                await this._r_docs_in_folder(j.token, zip, convert)
             } else if (j.type === "file") {
-                await this.get_file(j.token, user_access, zip, j.name)
+                await this.get_file(j.token, zip, j.name)
             }
         }
 
         return await zipfile.generateAsync({ type: 'blob' })
     }
 
-    async _r_docs_in_folder(folder_token: string, user_access: string, zipfile: JSZip, convert: Converter) {
-        const root_folder = await this.get_files_in_folder(folder_token, user_access)
+    async _r_docs_in_folder(folder_token: string, zipfile: JSZip, convert: Converter) {
+        const root_folder = await this.get_files_in_folder(folder_token)
         for (let f_token in root_folder.children) {
             const file = root_folder.children[f_token]
             const fd: FolderTokenJson = {
@@ -352,23 +403,23 @@ export class FeishuService {
                 type: file.type
             }
             if (file.type === 'doc') {
-                await this.save_doc(fd, user_access, zipfile, convert)
+                await this.save_doc(fd, zipfile, convert)
             } else if (file.type === 'folder') {
                 const fzip = zipfile.folder(file.name)
-                await this._r_docs_in_folder(file.token, user_access, fzip!, convert)
+                await this._r_docs_in_folder(file.token, fzip!, convert)
             } else if (file.type === 'docx') {
-                await this.save_docx(fd, user_access, zipfile)
+                await this.save_docx(fd, zipfile)
             } else if (file.type === "file") {
-                await this.get_file(file.token, user_access, zipfile, file.name)
+                await this.get_file(file.token, zipfile, file.name)
             }
         }
     }
 
 
-    async get_all_docs_under_folder(user_access: string, folder_token_json: string, depth: number): Promise<MyTreeSelectOption[]> {
+    async get_all_docs_under_folder(folder_token_json: string, depth: number): Promise<MyTreeSelectOption[]> {
         let options: MyTreeSelectOption[] = []
         let j: FolderTokenJson = JSON.parse(folder_token_json)
-        const root_folder = await this.get_files_in_folder(j.token, user_access)
+        const root_folder = await this.get_files_in_folder(j.token)
 
         const folder_promise = []
         for (let f_token in root_folder.children) {
@@ -388,7 +439,7 @@ export class FeishuService {
                 })
             } else if (file.type === 'folder') {
                 const f = async () => {
-                    let name = (await this.get_folder_meta(file.token, user_access)).name
+                    let name = (await this.get_folder_meta(file.token)).name
                     let mj: FolderTokenJson = {
                         token: file.token,
                         path: [...j.path, name],
@@ -422,79 +473,79 @@ export class FeishuService {
         return options
     }
 
-    async get_all_docs_list(user_access: string): Promise<MyTreeSelectOption[]> {
-        const root = await this.get_root_folder(user_access)
+    async get_all_docs_list(): Promise<MyTreeSelectOption[]> {
+        const root = await this.get_root_folder()
         let mj: FolderTokenJson = {
             token: root.token,
             path: [],
             name: '',
             type: 'root'
         }
-        return await this.get_all_docs_under_folder(user_access, JSON.stringify(mj), 0)
+        return await this.get_all_docs_under_folder(JSON.stringify(mj), 0)
     }
 
-    async get_wiki_list(user_token: string, page_token?: string): Promise<WikiRecord[]> {
+    async get_wiki_list(page_token?: string): Promise<WikiRecord[]> {
         let r = await axios.get(feishu_api(`/wiki/v2/spaces?page_size=10${page_token ? '&page_token=' + page_token : ''}`), {
             headers: {
-                "Authorization": `Bearer ${user_token}`
+                "Authorization": `Bearer ${await this.userAccess()}`
             }
         })
         const d = r.data.data as WikiList
         let list = d.items
         if (d.has_more) {
-            list = [...list, ...await this.get_wiki_list(user_token, d.page_token)]
+            list = [...list, ...await this.get_wiki_list(d.page_token)]
         }
         return list
     }
 
-    async get_wiki_nodes_root(user_token: string, space_id: string, page_token?: string): Promise<NodeRecord[]> {
+    async get_wiki_nodes_root(space_id: string, page_token?: string): Promise<NodeRecord[]> {
         let r = await axios.get(feishu_api(`/wiki/v2/spaces/${space_id}/nodes?page_size=50${page_token ? '&page_token=' + page_token : ''}`), {
             headers: {
-                "Authorization": `Bearer ${user_token}`
+                "Authorization": `Bearer ${await this.userAccess()}`
             }
         })
         const d = r.data.data as WikiNodeList
         let list = d.items
         if (d.has_more) {
-            list = [...list, ...await this.get_wiki_nodes_root(user_token, space_id, d.page_token)]
+            list = [...list, ...await this.get_wiki_nodes_root(space_id, d.page_token)]
         }
         return list
     }
 
-    async get_wiki_nodes(user_token: string, space_id: string, parent_node: string, page_token?: string): Promise<NodeRecord[]> {
+    async get_wiki_nodes(space_id: string, parent_node: string, page_token?: string): Promise<NodeRecord[]> {
         let r = await axios.get(feishu_api(`/wiki/v2/spaces/${space_id}/nodes?page_size=50&parent_node_token=${parent_node}${page_token ? '&page_token=' + page_token : ''}`), {
             headers: {
-                "Authorization": `Bearer ${user_token}`
+                "Authorization": `Bearer ${await this.userAccess()}`
             }
         })
         const d = r.data.data as WikiNodeList
         let list = d.items
         if (d.has_more) {
-            list = [...list, ...await this.get_wiki_nodes(user_token, space_id, d.page_token)]
+            list = [...list, ...await this.get_wiki_nodes(space_id, d.page_token)]
         }
         return list
     }
 
-    async get_all_wiki_in_space(user_token: string, space_id: string, convert_md: boolean) {
+    async get_all_wiki_in_space(space_id: string, convert_md: boolean) {
         const zipfile = new JSZip()
         const convert = new Converter()
         this.convert = convert_md
-        const root = await this.get_wiki_nodes_root(user_token, space_id)
-        await this._r_get_all_wiki_in_space(user_token, space_id, root, zipfile, convert)
+        const root = await this.get_wiki_nodes_root(space_id)
+        await this._r_get_all_wiki_in_space(space_id, root, zipfile, convert)
         return await zipfile.generateAsync({ type: 'blob' })
     }
 
-    async _r_get_all_wiki_in_space(user_access: string, space_id: string, nodes: NodeRecord[], zipfile: JSZip, convert: Converter) {
+    async _r_get_all_wiki_in_space(space_id: string, nodes: NodeRecord[], zipfile: JSZip, convert: Converter) {
         for (let node of nodes) {
             if (node.has_child) {
                 let subzip = zipfile.folder(node.title)
-                let nodes = await this.get_wiki_nodes(user_access, space_id, node.node_token)
-                await this._r_get_all_wiki_in_space(user_access, space_id, nodes, subzip!, convert)
+                let nodes = await this.get_wiki_nodes(space_id, node.node_token)
+                await this._r_get_all_wiki_in_space(space_id, nodes, subzip!, convert)
             }
             if (node.obj_type === 'doc') {
-                await this.save_doc_wiki(node, user_access, zipfile, convert)
+                await this.save_doc_wiki(node, zipfile, convert)
             } else if (node.obj_type === 'docx') {
-                await this.save_docx_wiki(node, user_access, zipfile)
+                await this.save_docx_wiki(node, zipfile)
             } else {
                 console.warn("Not Impl doc type: " + node.obj_type)
             }

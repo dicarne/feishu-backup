@@ -11,36 +11,35 @@ let { app_id, app_secret } = router.params
 let code = router.query.code as string
 const message = useMessage()
 const dialog = useDialog()
-const userToken = ref("")
-if (!code && router.query.access_token) {
-    userToken.value = router.query.access_token as string
-}
-const downloadingList = ref<string[]>([])
 const feishu = new FeishuService((fname: string) => {
     downloadingList.value.push(fname)
 })
+
+if (!code && router.query.access_token) {
+    feishu.user_access_token = router.query.access_token as string
+    feishu.refresh_token = router.query.refresh_token as string
+}
+const downloadingList = ref<string[]>([])
+
 const convert_md = useLocalStorage('convert_md', true)
 const downloading = ref(false)
 
 const page = ref<'docs' | 'wiki' | 'none'>('none')
 const doc_options = ref<MyTreeSelectOption[]>()
 const doc_options_value = ref<any>(null)
-
-onMounted(async () => {
+const login = async () => {
     if (code) {
         let peding = true
         const task = async () => {
             app_id = app_id as string
             app_secret = app_secret as string
             const token = await feishu.app_login(app_id, app_secret)
-            const access = (await feishu.user_login(code, token)).access_token
+            const access_token_resp = (await feishu.user_login(code, token))
+            const access = access_token_resp.access_token
             if (peding) {
                 peding = false
-
-                userToken.value = access
                 let loc = window.location
-                window.location.replace(`${loc.origin}${loc.pathname}#/backup/${app_id}/${app_secret}?access_token=${userToken.value}`)
-                console.log(userToken.value)
+                window.location.replace(`${loc.origin}${loc.pathname}#/backup/${app_id}/${app_secret}?access_token=${access}?refresh_token=${access_token_resp.refresh_token}`)
             }
         }
         setTimeout(async () => {
@@ -55,13 +54,17 @@ onMounted(async () => {
         }, 5000);
         await task()
     }
-})
+}
+
+setTimeout(login, 20 * 60 * 1000);
+
+onMounted(login)
 
 const SaveFile = async () => {
     openDownloadModel()
     try {
         page.value = 'docs'
-        doc_options.value = await feishu.get_all_docs_list(userToken.value)
+        doc_options.value = await feishu.get_all_docs_list()
     } catch (error) {
         console.error(error)
         message.error("下载错误")
@@ -74,7 +77,7 @@ const SaveFileSelected = async () => {
     if (!doc_options_value.value) return
     openDownloadModel()
     let docs: string[] = doc_options_value.value
-    const f = await feishu.get_some_docs(userToken.value, docs, true)
+    const f = await feishu.get_some_docs(docs, true)
     saveAs(f, 'feishu_docs_' + new Date().toDateString() + '_backup.zip')
     closeDownloadModel()
 }
@@ -88,7 +91,7 @@ const SaveFileAll = () => {
         onPositiveClick: async () => {
             openDownloadModel()
             try {
-                const f = await feishu.get_all_docs(userToken.value, convert_md.value.value)
+                const f = await feishu.get_all_docs(convert_md.value.value)
                 saveAs(f, 'backup.zip')
             } catch (error) {
                 console.error(error)
@@ -107,14 +110,14 @@ const SaveFileAll = () => {
 const wiki_spaces = ref<WikiRecord[]>([])
 const SaveWiki = async () => {
     page.value = 'wiki'
-    const wikis = await feishu.get_wiki_list(userToken.value)
+    const wikis = await feishu.get_wiki_list()
     wiki_spaces.value = wikis
 }
 
 const downloadWikiSpace = async (space_id: string, space_name: string) => {
     openDownloadModel()
     try {
-        const f = await feishu.get_all_wiki_in_space(userToken.value, space_id, true)
+        const f = await feishu.get_all_wiki_in_space(space_id, true)
         saveAs(f, space_name + '_backup.zip')
     } catch (error) {
         console.error(error)
@@ -135,7 +138,7 @@ const closeDownloadModel = () => {
 
 
 const handleLoadDocFolder = async (option: any) => {
-    const re = await feishu.get_all_docs_under_folder(userToken.value, option.value, option.depth)
+    const re = await feishu.get_all_docs_under_folder(option.value, option.depth)
     option.children = re
 }
 </script>
@@ -150,10 +153,9 @@ const handleLoadDocFolder = async (option: any) => {
             padding: '10px'
         }">
             <n-space v-if="page === 'docs'" vertical>
-                <n-cascader v-model:value="doc_options_value" multiple allow-checking-not-loaded
-                :options="doc_options" cascade
-                :check-strategy="'child'" :show-path="false" remote :on-load="handleLoadDocFolder"
-                placeholder="选择文件" />
+                <n-cascader v-model:value="doc_options_value" multiple allow-checking-not-loaded :options="doc_options"
+                    cascade :check-strategy="'child'" :show-path="false" remote :on-load="handleLoadDocFolder"
+                    placeholder="选择文件" />
                 <n-space justify="space-around">
                     <n-button strong secondary type="warning" @click="SaveFileAll">下载所有文件</n-button>
                     <n-button strong secondary type="info" @click="SaveFileSelected">下载选中文件</n-button>
