@@ -132,7 +132,8 @@ const currentWikiSpaceFirstLevelPages = ref<NodeRecord[]>([])
 const openSelectWiki = async (space_id: string, space_name: string) => {
     selectWikiPageDialogOpen.value = true
     currentWiki.space_id = space_id
-    currentWiki.space_name = space_name;
+    currentWiki.space_name = space_name
+    currentWikiSpaceFirstLevelPages.value = []
     let roots = await feishu.get_wiki_nodes_root(space_id)
     currentWikiSpaceFirstLevelPages.value = roots
 }
