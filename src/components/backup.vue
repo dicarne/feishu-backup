@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import { NButton, NSpace, NList, NListItem, NThing, NModal, NCard, NCascader, useMessage, useDialog } from 'naive-ui'
-import { onMounted, ref } from 'vue';
+import { onMounted, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { FeishuService, WikiRecord, config } from './api';
+import { FeishuService, WikiRecord, config, NodeRecord } from './api';
 import { saveAs } from 'file-saver'
 import { useLocalStorage } from './hooks';
 import { MyTreeSelectOption } from './interface'
@@ -124,11 +124,34 @@ const SaveWiki = async () => {
     wiki_spaces.value = wikis
 }
 
-const downloadWikiSpace = async (space_id: string, space_name: string) => {
+const selectWikiPageDialogOpen = ref(false)
+const currentWiki = reactive({
+    space_id: "", space_name: ""
+})
+const currentWikiSpaceFirstLevelPages = ref<NodeRecord[]>([])
+const openSelectWiki = async (space_id: string, space_name: string) => {
+    selectWikiPageDialogOpen.value = true
+    currentWiki.space_id = space_id
+    currentWiki.space_name = space_name;
+    let roots = await feishu.get_wiki_nodes_root(space_id)
+    currentWikiSpaceFirstLevelPages.value = roots
+}
+const downloadOneWikiPage = async (node: NodeRecord) => {
     openDownloadModel()
     try {
-        const f = await feishu.get_all_wiki_in_space(space_id, true)
-        saveAs(f, space_name + '_backup.zip')
+        const f = await feishu.get_one_wiki_in_sapce(currentWiki.space_id, true, node)
+        saveAs(f, currentWiki.space_name + "_" + node.title + '_backup.zip')
+    } catch (error) {
+        console.error(error)
+        message.error("下载错误")
+    }
+    closeDownloadModel()
+}
+const downloadWikiSpace = async () => {
+    openDownloadModel()
+    try {
+        const f = await feishu.get_all_wiki_in_space(currentWiki.space_id, true)
+        saveAs(f, currentWiki.space_name + '_backup.zip')
     } catch (error) {
         console.error(error)
         message.error("下载错误")
@@ -172,12 +195,14 @@ const handleLoadDocFolder = async (option: any) => {
                 </n-space>
             </n-space>
 
-            <n-space justify="space-around" v-if="page === 'wiki'">
+            <n-space justify="space-around" v-if="page === 'wiki'" :style="{
+                maxHeight: '80vh', overflow: 'auto'
+            }">
                 <n-list bordered>
                     <n-list-item v-for="item in wiki_spaces" :key="item.space_id">
                         <n-thing :title="item.name">{{ item.description }}</n-thing>
                         <template #suffix>
-                            <n-button @click="downloadWikiSpace(item.space_id, item.name)">下载</n-button>
+                            <n-button @click="openSelectWiki(item.space_id, item.name)">下载</n-button>
                         </template>
                     </n-list-item>
                 </n-list>
@@ -204,6 +229,28 @@ const handleLoadDocFolder = async (option: any) => {
         :style="{ width: '400px', maxHeight: '600px' }">
         <n-card>
             <template #header>{{ loading_text }}</template>
+        </n-card>
+    </n-modal>
+    <n-modal v-model:show="selectWikiPageDialogOpen" title="选择下载" size="huge"
+        :style="{ width: '400px', maxHeight: '600px', minHeight: '300px' }">
+        <n-card :style="{
+            overflow: 'auto'
+        }">
+            <template #header>选择下载指定知识空间页面</template>
+            <n-list bordered>
+                <n-list-item>
+                    <n-thing :title="'全部页面'"></n-thing>
+                    <template #suffix>
+                        <n-button @click="downloadWikiSpace">下载</n-button>
+                    </template>
+                </n-list-item>
+                <n-list-item v-for="item in currentWikiSpaceFirstLevelPages" :key="item.node_token">
+                    <n-thing :title="item.title"></n-thing>
+                    <template #suffix>
+                        <n-button @click="downloadOneWikiPage(item)">下载</n-button>
+                    </template>
+                </n-list-item>
+            </n-list>
         </n-card>
     </n-modal>
 </template>

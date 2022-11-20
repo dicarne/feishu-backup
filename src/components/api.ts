@@ -543,6 +543,14 @@ export class FeishuService {
         return await zipfile.generateAsync({ type: 'blob' })
     }
 
+    async get_one_wiki_in_sapce(space_id: string, convert_md: boolean, node: NodeRecord) {
+        const zipfile = new JSZip()
+        const convert = new Converter()
+        this.convert = convert_md
+        await this._r_get_all_wiki_in_space(space_id, [node], zipfile, convert)
+        return await zipfile.generateAsync({ type: 'blob' })
+    }
+
     async _r_get_all_wiki_in_space(space_id: string, nodes: NodeRecord[], zipfile: JSZip, convert: Converter) {
         for (let node of nodes) {
             if (node.has_child) {
