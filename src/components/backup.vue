@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { NButton, NSpace, NList, NListItem, NThing, NModal, NCard, NCascader, useMessage, useDialog } from 'naive-ui'
+import { NButton, NSpace, NList, NListItem, NThing, NModal, NCard, NCascader, useMessage, useDialog, NCheckbox, NCheckboxGroup } from 'naive-ui'
 import { onMounted, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { FeishuService, WikiRecord, config, NodeRecord } from './api';
@@ -175,6 +175,43 @@ const handleLoadDocFolder = async (option: any) => {
     const re = await feishu.get_all_docs_under_folder(option.value, option.depth)
     option.children = re
 }
+
+const wikis = ref<null | any[]>(null)
+const downloadSelectedWikis = async () => {
+    openDownloadModel()
+
+    if (wikis.value != null) {
+        for (let i = 0; i < wikis.value.length; i++) {
+            const e = wikis.value[i];
+            const info: { space: string, name: string } = JSON.parse(e)
+            try {
+                const f = await feishu.get_all_wiki_in_space(info.space, true)
+                saveAs(f, info.name + '_backup.zip')
+            } catch (error) {
+                console.error(error)
+                message.error("下载错误")
+            }
+        }
+    }
+    closeDownloadModel()
+}
+
+const downloadAllWikis = async () => {
+    openDownloadModel()
+    if (wikis.value != null) {
+        for (let i = 0; i < wiki_spaces.value.length; i++) {
+            const e = wiki_spaces.value[i];
+            try {
+                const f = await feishu.get_all_wiki_in_space(e.space_id, true)
+                saveAs(f, e.name + '_backup.zip')
+            } catch (error) {
+                console.error(error)
+                message.error("下载错误")
+            }
+        }
+    }
+    closeDownloadModel()
+}
 </script>
 
 <template>
@@ -196,22 +233,33 @@ const handleLoadDocFolder = async (option: any) => {
                 </n-space>
             </n-space>
 
+            <n-space v-if="page === 'wiki'" justify="space-around">
+                <n-button @click="downloadAllWikis">下载全部知识空间</n-button>
+                <n-button @click="downloadSelectedWikis">下载选中知识空间</n-button>
+            </n-space>
+
             <n-space justify="space-around" v-if="page === 'wiki'" :style="{
                 maxHeight: '80vh', overflow: 'auto'
             }">
-                <n-list bordered>
-                    <n-list-item v-for="item in wiki_spaces" :key="item.space_id">
-                        <n-thing :title="item.name">{{ item.description }}</n-thing>
-                        <template #suffix>
-                            <n-button @click="openSelectWiki(item.space_id, item.name)">下载</n-button>
-                        </template>
-                    </n-list-item>
-                </n-list>
+                <n-checkbox-group v-model:value="wikis">
+                    <n-list bordered>
+                        <n-list-item v-for="item in wiki_spaces" :key="item.space_id">
+                            <template #prefix>
+                                <n-checkbox :value="JSON.stringify({ space: item.space_id, name: item.name })" />
+                            </template>
+                            <n-thing :title="item.name">{{ item.description }}</n-thing>
+                            <template #suffix>
+                                <n-button @click="openSelectWiki(item.space_id, item.name)">下载</n-button>
+                            </template>
+                        </n-list-item>
+                    </n-list>
+                </n-checkbox-group>
+
             </n-space>
         </div>
     </div>
-    <n-modal v-model:show="downloading" :mask-closable="false" title="下载中" @positive-click="closeDownloadModel"
-        size="huge" :style="{ width: '400px', maxHeight: '600px' }">
+    <n-modal v-model:show="downloading" :mask-closable="false" title="下载中" @positive-click="closeDownloadModel" size="huge"
+        :style="{ width: '400px', maxHeight: '600px' }">
         <n-card>
             <template #header>下载中</template>
             <div :style="{
