@@ -6,6 +6,7 @@ import { MyTreeSelectOption } from "./interface";
 import { stringNullIsDefault } from "../lib/stringUtil";
 import { ConvertDocxToMD } from "./convert_docx";
 import localforage from "localforage";
+import { DialogApiInjection } from "naive-ui/es/dialog/src/DialogProvider";
 
 export const config = { APIFallback: false }
 
@@ -127,8 +128,9 @@ export class FeishuService {
     downloadingCallback?: (file: string) => void
     constructor(downloadingCallback?: (file: string) => void) {
         this.downloadingCallback = downloadingCallback
+        this.user_expires_in = JSON.parse(window.localStorage.getItem("user_expires_in") ?? "0")
     }
-
+    dialog?: DialogApiInjection
     tenant_access_token?: string
     user_access_token?: string
     tenant_expires_in?: number
@@ -140,9 +142,19 @@ export class FeishuService {
         if (!this.tenant_expires_in || this.tenant_expires_in < Date.now()) {
             await this.app_login()
         }
-        if (!this.user_expires_in || this.user_expires_in < Date.now()) {
-            await this.refresh_user_access(this.refresh_token!, this.tenant_access_token!)
+        try {
+            if (!this.user_expires_in || this.user_expires_in < Date.now()) {
+                await this.refresh_user_access(this.refresh_token!, this.tenant_access_token!)
+            }
+        } catch (error) {
+            if (this.dialog) {
+                this.dialog.error({
+                    title: "错误",
+                    content: "刷新用户token失败，请重新认证！"
+                })
+            }
         }
+
         return this.user_access_token!
     }
 
@@ -212,6 +224,7 @@ export class FeishuService {
 
         window.localStorage.setItem("user_access_token", user.access_token)
         window.localStorage.setItem("refresh_token", user.refresh_token)
+        window.localStorage.setItem("user_expires_in", JSON.stringify(this.user_expires_in))
         return user
     }
 

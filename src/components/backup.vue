@@ -14,7 +14,7 @@ const dialog = useDialog()
 const feishu = new FeishuService((fname: string) => {
     downloadingList.value.push(fname)
 })
-
+feishu.dialog = dialog
 if (code && window.localStorage.getItem("code") == code) {
     feishu.user_access_token = window.localStorage.getItem("user_access_token") as string
     feishu.refresh_token = window.localStorage.getItem("refresh_token") as string
