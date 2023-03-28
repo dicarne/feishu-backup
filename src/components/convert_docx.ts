@@ -281,7 +281,7 @@ async function convertDocxToMD(ctx0: ConvertContextArg, parent: string, blocks: 
                 for (let i = 0; i < rows; i++) {
                     md += "|"
                     for (let j = 0; j < cols; j++) {
-                        const index = i * rows + j
+                        const index = i * cols + j
                         const it = cells[index]
                         if (!it) {
                             md += "  |"
@@ -301,6 +301,18 @@ async function convertDocxToMD(ctx0: ConvertContextArg, parent: string, blocks: 
                     }
                 }
                 break
+            }
+            case BlockType.tabel_cell: {
+                const e = ele as DocxBlock
+                console.log(e)
+                const cells = blocks.filter(b => b.parent_id === e.block_id)
+                for (let i = 0; i < cells.length; i++) {
+                    const c = cells[i];
+                    md += await convertDocxToMD(ctx, c.block_id, blocks, zip, access, {
+                        nonewline: true
+                    })
+                }
+                break;
             }
             default:
                 break;
