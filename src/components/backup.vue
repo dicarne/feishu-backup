@@ -6,6 +6,7 @@ import { FeishuService, WikiRecord, config, NodeRecord } from './api';
 import { saveAs } from 'file-saver'
 import { useLocalStorage } from './hooks';
 import { MyTreeSelectOption } from './interface'
+const error_message = "下载错误，请检查权限申请情况！"
 let router = useRoute()
 let { app_id, app_secret } = router.params
 let code = router.query.code as string
@@ -77,7 +78,7 @@ const SaveFile = async () => {
         doc_options.value = await feishu.get_all_docs_list()
     } catch (error) {
         console.error(error)
-        message.error("下载错误")
+        message.error(error_message)
     }
 
     closeDownloadModel()
@@ -105,7 +106,7 @@ const SaveFileAll = () => {
                 saveAs(f, 'backup.zip')
             } catch (error) {
                 console.error(error)
-                message.error("下载错误")
+                message.error(error_message)
             }
 
             closeDownloadModel()
@@ -120,8 +121,15 @@ const SaveFileAll = () => {
 const wiki_spaces = ref<WikiRecord[]>([])
 const SaveWiki = async () => {
     page.value = 'wiki'
-    const wikis = await feishu.get_wiki_list()
-    wiki_spaces.value = wikis
+    try {
+        const wikis = await feishu.get_wiki_list()
+        wiki_spaces.value = wikis
+    } catch (error) {
+        console.error(error)
+        message.error(error_message)
+    }
+
+
 }
 
 const selectWikiPageDialogOpen = ref(false)
@@ -130,12 +138,18 @@ const currentWiki = reactive({
 })
 const currentWikiSpaceFirstLevelPages = ref<NodeRecord[]>([])
 const openSelectWiki = async (space_id: string, space_name: string) => {
-    selectWikiPageDialogOpen.value = true
-    currentWiki.space_id = space_id
-    currentWiki.space_name = space_name
-    currentWikiSpaceFirstLevelPages.value = []
-    let roots = await feishu.get_wiki_nodes_root(space_id)
-    currentWikiSpaceFirstLevelPages.value = roots
+    try {
+        selectWikiPageDialogOpen.value = true
+        currentWiki.space_id = space_id
+        currentWiki.space_name = space_name
+        currentWikiSpaceFirstLevelPages.value = []
+        let roots = await feishu.get_wiki_nodes_root(space_id)
+        currentWikiSpaceFirstLevelPages.value = roots
+    } catch (error) {
+        console.error(error)
+        message.error(error_message)
+    }
+
 }
 const downloadOneWikiPage = async (node: NodeRecord) => {
     openDownloadModel()
@@ -144,7 +158,7 @@ const downloadOneWikiPage = async (node: NodeRecord) => {
         saveAs(f, currentWiki.space_name + "_" + node.title + '_backup.zip')
     } catch (error) {
         console.error(error)
-        message.error("下载错误")
+        message.error(error_message)
     }
     closeDownloadModel()
 }
@@ -155,7 +169,7 @@ const downloadWikiSpace = async () => {
         saveAs(f, currentWiki.space_name + '_backup.zip')
     } catch (error) {
         console.error(error)
-        message.error("下载错误")
+        message.error(error_message)
     }
     closeDownloadModel()
 }
@@ -172,8 +186,14 @@ const closeDownloadModel = () => {
 
 
 const handleLoadDocFolder = async (option: any) => {
-    const re = await feishu.get_all_docs_under_folder(option.value, option.depth)
-    option.children = re
+    try {
+        const re = await feishu.get_all_docs_under_folder(option.value, option.depth)
+        option.children = re
+    } catch (error) {
+        console.error(error)
+        message.error(error_message)
+    }
+
 }
 
 const wikis = ref<null | any[]>(null)
@@ -189,7 +209,7 @@ const downloadSelectedWikis = async () => {
                 saveAs(f, info.name + '_backup.zip')
             } catch (error) {
                 console.error(error)
-                message.error("下载错误")
+                message.error(error_message)
             }
         }
     }
@@ -206,7 +226,7 @@ const downloadAllWikis = async () => {
                 saveAs(f, e.name + '_backup.zip')
             } catch (error) {
                 console.error(error)
-                message.error("下载错误")
+                message.error(error_message)
             }
         }
     }
