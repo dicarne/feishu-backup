@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { NButton, NSpace, NList, NListItem, NThing, NModal, NCard, NCascader, useMessage, useDialog, NCheckbox, NCheckboxGroup } from 'naive-ui'
+import { NButton, NSpace, NList, NListItem, NThing, NModal, NCard, NCascader, useMessage, useDialog, NCheckbox, NCheckboxGroup, NTabs, NTabPane } from 'naive-ui'
 import { onMounted, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { FeishuService, WikiRecord, config, NodeRecord } from './api';
@@ -56,17 +56,9 @@ const login = async () => {
             }
 
         }
-        setTimeout(async () => {
-            if (peding.value) {
-                config.APIFallback = true
-                peding.value = true
-                console.log("use fallback api")
-                await task()
-                console.log("use fallback api success")
-            }
-        }, 5000);
         await task()
     }
+    changeTab(currentTab.value)
 }
 
 onMounted(login)
@@ -218,28 +210,42 @@ const downloadSelectedWikis = async () => {
 
 const downloadAllWikis = async () => {
     openDownloadModel()
-    if (wikis.value != null) {
-        for (let i = 0; i < wiki_spaces.value.length; i++) {
-            const e = wiki_spaces.value[i];
-            try {
-                const f = await feishu.get_all_wiki_in_space(e.space_id, true)
-                saveAs(f, e.name + '_backup.zip')
-            } catch (error) {
-                console.error(error)
-                message.error(error_message)
-            }
+    for (let i = 0; i < wiki_spaces.value.length; i++) {
+        const e = wiki_spaces.value[i];
+        try {
+            const f = await feishu.get_all_wiki_in_space(e.space_id, true)
+            saveAs(f, e.name + '_backup.zip')
+        } catch (error) {
+            console.error(error)
+            message.error(error_message)
         }
     }
     closeDownloadModel()
 }
+
+const currentTab = ref<string | number>("tab-cloud")
+const changeTab = (value: string | number) => {
+    currentTab.value = value
+    switch (value) {
+        case "tab-cloud":
+            SaveFile()
+            break;
+        case "tab-wiki":
+            SaveWiki()
+            break;
+        default:
+            break;
+    }
+}
+
 </script>
 
 <template>
     <div class="main-stage">
-        <n-space justify="space-around">
-            <n-button strong secondary round type="primary" @click="SaveFile">下载云空间文档</n-button>
-            <n-button strong secondary round type="primary" @click="SaveWiki">下载知识库文档</n-button>
-        </n-space>
+        <n-tabs type="segment" :value="currentTab" :on-update:value="changeTab">
+            <n-tab-pane name="tab-cloud" tab="云空间文档"></n-tab-pane>
+            <n-tab-pane name="tab-wiki" tab="知识库文档"></n-tab-pane>
+        </n-tabs>
         <div :style="{
             padding: '10px'
         }">
@@ -269,7 +275,7 @@ const downloadAllWikis = async () => {
                             </template>
                             <n-thing :title="item.name">{{ item.description }}</n-thing>
                             <template #suffix>
-                                <n-button @click="openSelectWiki(item.space_id, item.name)">下载</n-button>
+                                <n-button @click="openSelectWiki(item.space_id, item.name)">选择</n-button>
                             </template>
                         </n-list-item>
                     </n-list>

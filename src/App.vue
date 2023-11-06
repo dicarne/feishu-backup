@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { NMessageProvider, NDialogProvider } from 'naive-ui'
+
+
 </script>
 
 <template>
@@ -14,6 +16,7 @@ import { NMessageProvider, NDialogProvider } from 'naive-ui'
 body {
   margin: 0px;
 }
+
 #app {
   background-color: rgb(54, 54, 54);
   width: 100vw;

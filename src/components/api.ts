@@ -1,7 +1,6 @@
 import axios from "axios";
 import JSZip from "jszip";
 import { Converter, TmpFile } from "./converter";
-import secret from "../../secret"
 import { MyTreeSelectOption } from "./interface";
 import { stringNullIsDefault } from "../lib/stringUtil";
 import { ConvertDocxToMD } from "./convert_docx";
@@ -11,23 +10,8 @@ import { DialogApiInjection } from "naive-ui/es/dialog/src/DialogProvider";
 export const config = { APIFallback: false }
 
 export function feishu_api(url: string) {
-    //return "api"
-    if (!config.APIFallback)
-        return secret.baseUrl + url
-    else {
-        return (secret.fall_back_baseUrl ?? secret.baseUrl) + url
-    }
+    return import.meta.env.VITE_API_URL + url
 }
-
-function feishu_api_noauth(url: string) {
-    if (!config.APIFallback)
-        return secret.baseUrl_noauth + url
-    else {
-        return (secret.fall_back_baseUrl_noauth ?? secret.baseUrl_noauth) + url
-    }
-}
-
-
 
 export interface UserLogin {
     access_token: string
@@ -172,7 +156,7 @@ export class FeishuService {
             app_id = this.app_id
             app_secret = this.app_secret
         }
-        let r = await axios.post(feishu_api_noauth("/auth/v3/tenant_access_token/internal/"), {
+        let r = await axios.post(feishu_api("/auth/v3/tenant_access_token/internal/"), {
             app_id: app_id,
             app_secret: app_secret
         })

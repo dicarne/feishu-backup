@@ -6,3 +6,7 @@ dist-ssr
 /secret.js
 /secret.ts
 /deploy.sh
+feishu-backup
+feishu-backup-mac
+feishu-backup.exe
+publish/*
