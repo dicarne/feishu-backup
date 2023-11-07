@@ -2,3 +2,5 @@ node_modules
 .vscode
 dist
 secret.ts
+*.local
+feishu-backup*
