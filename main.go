@@ -9,11 +9,19 @@ import (
 	"os/exec"
 	"runtime"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	r := gin.Default()
+
+	config := cors.DefaultConfig()
+	config.AllowAllOrigins = true
+	config.AllowCredentials = true
+	config.AllowHeaders = []string{"Authorization"}
+	r.Use(cors.New(config))
+
 	debug := flag.Bool("debug", false, "用于本地Web开发")
 	flag.Parse()
 
