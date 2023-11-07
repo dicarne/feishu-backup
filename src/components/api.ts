@@ -13,6 +13,7 @@ const proxy_url = import.meta.env.VITE_PROXY_API_URL
 
 export async function testLocalServer() {
     if (!import.meta.env.VITE_SERVER) {
+        config.ProxyAPI = true
         return false
     }
     try {
@@ -20,6 +21,7 @@ export async function testLocalServer() {
         const rj = await r.json()
         return rj.code === 0
     } catch (error) {
+        config.ProxyAPI = true
         return false
     }
 
