@@ -113,6 +113,9 @@ location /your_url {
 暂时只支持部分我需要的格式转换，所以很多格式都是跳过的。
 可以修改`src/components/converter.ts`（飞书1.0doc）和`src/components/convert_docx.ts`（飞书2.0docx）支持你想要的块。
 
+## 试用
+访问[试用](https://dicarne.github.io/feishu-backup/#/)直接尝试使用！但是由于转发服务器的原因，下载速度会更慢且不稳定。推荐从Release下载运行本地版。
+
 ## 注意
 这是为个人用户设计，你必须要有飞书的管理员权限才行。否则API无法获取你的文档。
 注意，URL可能泄露你的app secret，请在可信的环境使用。
