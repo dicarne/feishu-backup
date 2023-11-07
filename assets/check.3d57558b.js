@@ -1,0 +1,1 @@
+import{d as r,u as a,o as c}from"./index.cd0e9cd2.js";import{t as l}from"./api.6bb2b98e.js";const u=r({__name:"check",setup(n){const t=a();return c(async()=>{let e=!1;await l()&&(e=!0);const o=window.localStorage.getItem(e?"redirect-url.local":"redirect-url.public");o===null?t.push("/config"):window.location.replace(o)}),()=>{}}});export{u as default};
