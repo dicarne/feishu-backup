@@ -2,7 +2,7 @@
 import { NButton, NSpace, NList, NListItem, NThing, NModal, NCard, NCascader, useMessage, useDialog, NCheckbox, NCheckboxGroup, NTabs, NTabPane } from 'naive-ui'
 import { onMounted, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { FeishuService, WikiRecord, config, NodeRecord } from './api';
+import { FeishuService, WikiRecord, NodeRecord, testLocalServer } from './api';
 import { saveAs } from 'file-saver'
 import { useLocalStorage } from './hooks';
 import { MyTreeSelectOption } from './interface'
@@ -33,6 +33,7 @@ const doc_options_value = ref<any>(null)
 const peding = ref(false)
 const loading_text = ref("登陆中")
 const login = async () => {
+    await testLocalServer()
     if (code && window.localStorage.getItem("code") != code) {
         peding.value = true
         const task = async () => {

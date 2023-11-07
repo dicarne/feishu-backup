@@ -18,12 +18,15 @@ func main() {
 	flag.Parse()
 
 	if *debug {
-		r.Any("/tool/feishu-backup/*proxyPath", proxydev)
+		r.Any("/feishu-backup/*proxyPath", proxydev)
 	} else {
-		r.Static("/tool/feishu-backup", "./dist")
+		r.Static("/feishu-backup", "./dist")
 	}
-	r.Any("/api/*proxyPath", proxy)
-	Open(`http://127.0.0.1:18900/tool/feishu-backup`)
+	r.Any("/api/feishu/*proxyPath", proxy)
+	r.GET("/ping", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, gin.H{"code": 0})
+	})
+	Open(`http://127.0.0.1:18900/feishu-backup`)
 	r.Run("localhost:18900")
 }
 
@@ -57,7 +60,7 @@ func proxydev(c *gin.Context) {
 		req.Host = remote.Host
 		req.URL.Scheme = remote.Scheme
 		req.URL.Host = remote.Host
-		req.URL.Path = "/tool/feishu-backup" + c.Param("proxyPath")
+		req.URL.Path = "/feishu-backup" + c.Param("proxyPath")
 	}
 
 	proxy.ServeHTTP(c.Writer, c.Request)

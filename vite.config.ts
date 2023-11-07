@@ -4,13 +4,13 @@ import { loadEnv } from 'vite'
 
 export default ({ mode }) => {
   const env = loadEnv(mode, process.cwd())
-  console.log(env.VITE_BASEURL)
+  let url = env.VITE_PAGE_BASEURL ? env.VITE_PAGE_BASEURL : env.VITE_SERVER_BASEURL
   return defineConfig({
     server: {
       port: 3800,
       //proxy: proxy
     },
-    base: env.VITE_BASEURL,
+    base: url,
     plugins: [vue()]
   })
 

@@ -7,9 +7,28 @@ import { ConvertDocxToMD } from "./convert_docx";
 import localforage from "localforage";
 import { DialogApiInjection } from "naive-ui/es/dialog/src/DialogProvider";
 
-export const config = { APIFallback: false }
+export const config = { ProxyAPI: false }
+
+const proxy_url = import.meta.env.VITE_PROXY_API_URL
+
+export async function testLocalServer() {
+    if (!import.meta.env.VITE_SERVER) {
+        return false
+    }
+    try {
+        const r = await fetch(`${import.meta.env.VITE_SERVER}/ping`)
+        const rj = await r.json()
+        return rj.code === 0
+    } catch (error) {
+        return false
+    }
+
+}
 
 export function feishu_api(url: string) {
+    if (config.ProxyAPI && !!proxy_url) {
+        return proxy_url + url
+    }
     return import.meta.env.VITE_API_URL + url
 }
 
