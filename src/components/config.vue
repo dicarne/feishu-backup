@@ -22,11 +22,19 @@ const calculate = () => {
         redirect_url.value = "请填写ID和Secret"
     } else {
         if (localmode) {
-            redirect_url.value = `${import.meta.env.VITE_SERVER}${import.meta.env.VITE_SERVER_BASEURL}#/backup/${appid.value}/${appsecret.value}`
+            let server = import.meta.env.VITE_SERVER;
+            if (server === "") {
+                server = window.location.origin
+            }
+            redirect_url.value = `${server}${import.meta.env.VITE_SERVER_BASEURL}#/backup/${appid.value}/${appsecret.value}`
             backup_url.value = `https://open.feishu.cn/open-apis/authen/v1/index?redirect_uri=${encodeURIComponent(redirect_url.value)}&app_id=${appid.value}`
             window.localStorage.setItem("redirect-url.local", backup_url.value)
         } else {
-            redirect_url.value = `${import.meta.env.VITE_DOMAIN}${import.meta.env.VITE_PAGE_BASEURL}#/backup/${appid.value}/${appsecret.value}`
+            let server = import.meta.env.VITE_DOMAIN;
+            if (server === "") {
+                server = window.location.origin
+            }
+            redirect_url.value = `${server}${import.meta.env.VITE_PAGE_BASEURL}#/backup/${appid.value}/${appsecret.value}`
             backup_url.value = `https://open.feishu.cn/open-apis/authen/v1/index?redirect_uri=${encodeURIComponent(redirect_url.value)}&app_id=${appid.value}`
             window.localStorage.setItem("redirect-url.public", backup_url.value)
         }

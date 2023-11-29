@@ -1,7 +1,7 @@
 #/bin/bash
 
-pnpm i
-pnpm run build
+# pnpm i
+# pnpm run build
 
 CGO_ENABLED=0 GOOS=windows  GOARCH=amd64  go build -o feishu-backup.exe
 CGO_ENABLED=0  GOOS=linux  GOARCH=amd64  go build -o feishu-backup

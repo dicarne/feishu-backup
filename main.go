@@ -35,7 +35,7 @@ func main() {
 		ctx.JSON(http.StatusOK, gin.H{"code": 0})
 	})
 	Open(`http://127.0.0.1:18900/feishu-backup`)
-	r.Run("localhost:18900")
+	r.Run("0.0.0.0:18900")
 }
 
 func proxy(c *gin.Context) {

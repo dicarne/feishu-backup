@@ -12,7 +12,7 @@ export const config = { ProxyAPI: false }
 const proxy_url = import.meta.env.VITE_PROXY_API_URL
 
 export async function testLocalServer() {
-    if (!import.meta.env.VITE_SERVER) {
+    if (import.meta.env.VITE_SERVER === undefined) {
         config.ProxyAPI = true
         return false
     }
