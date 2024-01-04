@@ -129,10 +129,10 @@ function convertElements(ele: element[]) {
             if (sty.italic) ct = "*" + ct.trim() + "*"
             if (sty.inline_code) ct = "`" + ct + "`"
             if (sty.background_color != undefined) {
-                ct = `<mark style="background-color: ${_mark_color[sty.background_color]}">` + ct + "</mark>"
+                ct = `<span style="background-color: ${_mark_color[sty.background_color]}">` + ct + "</span>"
             }
             if (sty.text_color != undefined) {
-                ct = `<color style="color: ${_mark_color[sty.text_color]}">${ct}</color>`
+                ct = `<span style="color: ${_mark_color[sty.text_color]}">${ct}</span>`
             }
             md += ct
         } else if (e.equation) {
