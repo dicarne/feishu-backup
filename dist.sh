@@ -9,6 +9,9 @@ CGO_ENABLED=0 GOOS=darwin  GOARCH=amd64  go build -o feishu-backup-mac
 
 
 mkdir publish
+rm publish/windows.zip
+rm publish/linux.zip
+rm publish/mac.zip
 zip -r publish/windows.zip feishu-backup.exe dist
 zip -r publish/linux.zip feishu-backup dist
 zip -r publish/mac.zip feishu-backup-mac dist
