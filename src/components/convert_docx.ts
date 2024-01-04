@@ -125,6 +125,10 @@ function convertElements(ele: element[]) {
             if (sty.link) {
                 ct = `[${ct}](${decodeURIComponent(sty.link.url)})`
             }
+            if (ct.trim() == "") {
+                continue
+            }
+            if (sty.strikethrough) ct = "~~" + ct.trim() + "~~"
             if (sty.bold) ct = "**" + ct.trim() + "**"
             if (sty.italic) ct = "*" + ct.trim() + "*"
             if (sty.inline_code) ct = "`" + ct + "`"
@@ -133,6 +137,9 @@ function convertElements(ele: element[]) {
             }
             if (sty.text_color != undefined) {
                 ct = `<span style="color: ${_mark_color[sty.text_color]}">${ct}</span>`
+            }
+            if (sty.underline) {
+                ct = `<u>${ct}</u>`
             }
             md += ct
         } else if (e.equation) {
