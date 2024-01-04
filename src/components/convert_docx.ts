@@ -61,7 +61,9 @@ interface element {
             "underline": boolean,
             link?: {
                 url: string
-            }
+            },
+            background_color?: number,
+            text_color?: number
         }
     }
     equation?: {
@@ -96,6 +98,24 @@ interface DocxText extends DocxBlock {
     text: BlockContent
 }
 
+const _mark_color: any = {
+    15: "#F2F3F5",
+    1: "#FBBFBC",
+    2: "#F9D8B1",
+    3: "#FAF390",
+    4: "#C0ECBC",
+    5: "#C7D5F6",
+    6: "#D4C1F3",
+    7: "#E0E1E4",
+    14: "#BBBFC4",
+    8: "#F76964",
+    9: "#FFA53D",
+    10: "#FFE928",
+    11: "#62D256",
+    12: "#92AFF2",
+    13: "#B898EE"
+}
+
 function convertElements(ele: element[]) {
     let md = ""
     for (const e of ele) {
@@ -108,6 +128,12 @@ function convertElements(ele: element[]) {
             if (sty.bold) ct = "**" + ct.trim() + "**"
             if (sty.italic) ct = "*" + ct.trim() + "*"
             if (sty.inline_code) ct = "`" + ct + "`"
+            if (sty.background_color != undefined) {
+                ct = `<mark style="background-color: ${_mark_color[sty.background_color]}">` + ct + "</mark>"
+            }
+            if (sty.text_color != undefined) {
+                ct = `<color style="color: ${_mark_color[sty.text_color]}">${ct}</color>`
+            }
             md += ct
         } else if (e.equation) {
             md += "$" + e.equation.content.trim() + "$"
