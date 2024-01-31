@@ -211,6 +211,15 @@ async function convertDocxToMD(ctx0: ConvertContextArg, parent: string, blocks: 
             case BlockType.text: {
                 const e = ele as DocxText
                 md += convertElements(e.text.elements) + block_next_line
+                if (ele.children && ele.children.length > 0) {
+                    for (const c of ele.children) {
+                        let content = await convertDocxToMD(ctx, c, blocks, zip, access, {
+                            parent_prefix: "    " + (args?.parent_prefix ?? ""),
+                            parentIsTarget: true
+                        })
+                        md += content
+                    }
+                }
                 break
             }
             case BlockType.code: {
