@@ -201,6 +201,17 @@ async function convertDocxToMD(ctx0: ConvertContextArg, parent: string, blocks: 
                 args.orderListIndex = undefined
             }
         }
+        const simpleChildrenRender = async () => {
+            if (ele.children && ele.children.length > 0) {
+                for (const c of ele.children) {
+                    let content = await convertDocxToMD(ctx, c, blocks, zip, access, {
+                        parent_prefix: "" + (args?.parent_prefix ?? ""),
+                        parentIsTarget: true
+                    })
+                    md += content
+                }
+            }
+        }
         switch (ele.block_type) {
             case BlockType.page: {
                 const e = ele as DocxPage
@@ -211,66 +222,69 @@ async function convertDocxToMD(ctx0: ConvertContextArg, parent: string, blocks: 
             case BlockType.text: {
                 const e = ele as DocxText
                 md += convertElements(e.text.elements) + block_next_line
-                if (ele.children && ele.children.length > 0) {
-                    for (const c of ele.children) {
-                        let content = await convertDocxToMD(ctx, c, blocks, zip, access, {
-                            parent_prefix: "    " + (args?.parent_prefix ?? ""),
-                            parentIsTarget: true
-                        })
-                        md += content
-                    }
-                }
+                await simpleChildrenRender()
                 break
             }
             case BlockType.code: {
                 const e = ele as DocxCode
                 const strLang = e.code.style.language <= code_language.length ? code_language[e.code.style.language - 1] : ""
-                md += "```" + strLang + "\n" + convertElements(e.code.elements) + "\n```\n\n"
+                // 防止代码块出现缩进，可能会有问题，OD会识别错误，导致下文全变成了代码块
+                md += "\n```" + strLang + "\n" + convertElements(e.code.elements) + "\n```\n\n"
+                await simpleChildrenRender()
                 break
             }
             case BlockType.h1: {
                 const e = ele as DocxHeading
                 md += "# " + convertElements(e.heading1.elements) + "\n\n"
+                await simpleChildrenRender()
                 break
             }
             case BlockType.h2: {
                 const e = ele as DocxHeading
                 md += "## " + convertElements(e.heading2.elements) + "\n\n"
+                await simpleChildrenRender()
                 break
             }
             case BlockType.h3: {
                 const e = ele as DocxHeading
                 md += "### " + convertElements(e.heading3.elements) + "\n\n"
+                await simpleChildrenRender()
                 break
             }
             case BlockType.h4: {
                 const e = ele as DocxHeading
                 md += "#### " + convertElements(e.heading4.elements) + "\n\n"
+                await simpleChildrenRender()
                 break
             }
             case BlockType.h5: {
                 const e = ele as DocxHeading
                 md += "##### " + convertElements(e.heading5.elements) + "\n\n"
+                await simpleChildrenRender()
                 break
             }
             case BlockType.h6: {
                 const e = ele as DocxHeading
                 md += "###### " + convertElements(e.heading6.elements) + "\n\n"
+                await simpleChildrenRender()
                 break
             }
             case BlockType.h7: {
                 const e = ele as DocxHeading
                 md += "####### " + convertElements(e.heading7.elements) + "\n\n"
+                await simpleChildrenRender()
                 break
             }
             case BlockType.h8: {
                 const e = ele as DocxHeading
                 md += "######## " + convertElements(e.heading8.elements) + "\n\n"
+                await simpleChildrenRender()
                 break
             }
             case BlockType.h9: {
                 const e = ele as DocxHeading
                 md += "######### " + convertElements(e.heading9.elements) + "\n\n"
+                await simpleChildrenRender()
                 break
             }
             case BlockType.todo: {
@@ -348,6 +362,7 @@ async function convertDocxToMD(ctx0: ConvertContextArg, parent: string, blocks: 
             }
             case BlockType.divider: {
                 md += "---\n\n"
+                await simpleChildrenRender()
                 break
             }
             case BlockType.view: {
