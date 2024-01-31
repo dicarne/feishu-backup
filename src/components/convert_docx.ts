@@ -153,12 +153,19 @@ function convertElements(ele: element[]) {
 }
 
 export async function ConvertDocxToMD(ctx0: ConvertContextArg, parent: string, blocks: DocxBlock[], zip: JSZip, access: string, args?: { parent_prefix?: string, nonewline?: boolean }) {
-    const r = await convertDocxToMD(ctx0, parent, blocks, zip, access, args)
+    const r = await convertDocxToMD(ctx0, parent, blocks, zip, access, args ?? {})
     await Promise.all(ctx0.async_tasks || [])
     return r
 }
 
-async function convertDocxToMD(ctx0: ConvertContextArg, parent: string, blocks: DocxBlock[], zip: JSZip, access: string, args?: { parent_prefix?: string, nonewline?: boolean }) {
+interface CvtArg {
+    parent_prefix?: string,
+    nonewline?: boolean,
+    parentIsTarget?: boolean,
+    orderListIndex?: number,
+}
+
+async function convertDocxToMD(ctx0: ConvertContextArg, parent: string, blocks: DocxBlock[], zip: JSZip, access: string, args: CvtArg) {
     let tmd = ""
     let continue_block_type = 0
     const ctx: ConvertContext = {
@@ -167,8 +174,14 @@ async function convertDocxToMD(ctx0: ConvertContextArg, parent: string, blocks: 
     }
     ctx0.async_tasks = ctx.async_tasks
     for (const ele of blocks) {
-        if (ele.parent_id != parent) {
-            continue
+        if (!args?.parentIsTarget) {
+            if (ele.parent_id != parent) {
+                continue
+            }
+        } else {
+            if (ele.block_id != parent) {
+                continue
+            }
         }
         if (continue_block_type != ele.block_type) {
             if (continue_block_type != 0) tmd += "\n"
@@ -176,18 +189,23 @@ async function convertDocxToMD(ctx0: ConvertContextArg, parent: string, blocks: 
         }
         let block_next_line = "\n\n"
         let md = ""
-        if (args?.parent_prefix) {
+        if (args.parent_prefix) {
             md = args.parent_prefix + md
             block_next_line = "\n"
         }
-        if (args?.nonewline) {
+        if (args.nonewline) {
             block_next_line = ""
+        }
+        if (args.orderListIndex != undefined) {
+            if (ele.block_type != BlockType.orderList) {
+                args.orderListIndex = undefined
+            }
         }
         switch (ele.block_type) {
             case BlockType.page: {
                 const e = ele as DocxPage
                 md += "# " + convertElements(e.page.elements) + "\n\n"
-                md += await convertDocxToMD(ctx, e.block_id, blocks, zip, access)
+                md += await convertDocxToMD(ctx, e.block_id, blocks, zip, access, {})
             }
                 break;
             case BlockType.text: {
@@ -254,18 +272,49 @@ async function convertDocxToMD(ctx0: ConvertContextArg, parent: string, blocks: 
                 } else {
                     md += "- [ ] " + convertElements(e.elements) + "\n"
                 }
+                if (ele.children && ele.children.length > 0) {
+                    for (const c of ele.children) {
+                        let content = await convertDocxToMD(ctx, c, blocks, zip, access, {
+                            parent_prefix: "  " + (args?.parent_prefix ?? ""),
+                            parentIsTarget: true
+                        })
+                        md += content
+                    }
+                }
                 break
             }
             case BlockType.orderList: {
                 continue_block_type = BlockType.orderList
                 const e = (ele as any).ordered as BlockContent
-                md += "1. " + convertElements(e.elements) + "\n"
+                md += `${args.orderListIndex ?? 1}. ` + convertElements(e.elements) + "\n"
+                args.orderListIndex = (args.orderListIndex ?? 1) + 1
+                if (ele.children && ele.children.length > 0) {
+                    let index = 1
+                    for (const c of ele.children) {
+                        let content = await convertDocxToMD(ctx, c, blocks, zip, access, {
+                            parent_prefix: "    " + (args.parent_prefix ?? ""),
+                            parentIsTarget: true,
+                            orderListIndex: index
+                        })
+                        index += 1
+                        md += content
+                    }
+                }
                 break
             }
             case BlockType.bullet: {
                 continue_block_type = BlockType.bullet
                 const e = (ele as any).bullet as BlockContent
                 md += "* " + convertElements(e.elements) + "\n"
+                if (ele.children && ele.children.length > 0) {
+                    for (const c of ele.children) {
+                        let content = await convertDocxToMD(ctx, c, blocks, zip, access, {
+                            parent_prefix: "  " + (args?.parent_prefix ?? ""),
+                            parentIsTarget: true
+                        })
+                        md += content
+                    }
+                }
                 break
             }
             case BlockType.quote: {
@@ -281,11 +330,11 @@ async function convertDocxToMD(ctx0: ConvertContextArg, parent: string, blocks: 
                 break
             }
             case BlockType.grid: {
-                md += await convertDocxToMD(ctx, ele.block_id, blocks, zip, access)
+                md += await convertDocxToMD(ctx, ele.block_id, blocks, zip, access, {})
                 break
             }
             case BlockType.grid_column: {
-                md += await convertDocxToMD(ctx, ele.block_id, blocks, zip, access)
+                md += await convertDocxToMD(ctx, ele.block_id, blocks, zip, access, {})
                 break;
             }
             case BlockType.divider: {
@@ -293,7 +342,7 @@ async function convertDocxToMD(ctx0: ConvertContextArg, parent: string, blocks: 
                 break
             }
             case BlockType.view: {
-                md += await convertDocxToMD(ctx, ele.block_id, blocks, zip, access)
+                md += await convertDocxToMD(ctx, ele.block_id, blocks, zip, access, {})
                 break
             }
             case BlockType.file: {
