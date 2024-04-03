@@ -446,19 +446,25 @@ async function downloadAsset(ctx: ConvertContext, token: string, user_access: st
         get_ext(mime)
         zip.folder("assets")?.file(name ? (token + "_" + name) : (token + ext.value), c.data)
     } else {
-        let r = await axios.get(feishu_api(`/drive/v1/medias/${token}/download`),
-            {
-                headers: { 'Authorization': 'Bearer ' + user_access },
-                responseType: 'arraybuffer'
+        try {
+            let r = await axios.get(feishu_api(`/drive/v1/medias/${token}/download`),
+                {
+                    headers: { 'Authorization': 'Bearer ' + user_access },
+                    responseType: 'arraybuffer'
+                })
+            let mime = r.headers['content-type']
+            get_ext(mime)
+            const data = new Uint8Array(r.data)
+            zip.folder("assets")?.file(name ? (token + "_" + name) : (token + ext.value), data)
+            await tmp.setItem(token, {
+                mime: mime,
+                data: data
             })
-        let mime = r.headers['content-type']
-        get_ext(mime)
-        const data = new Uint8Array(r.data)
-        zip.folder("assets")?.file(name ? (token + "_" + name) : (token + ext.value), data)
-        await tmp.setItem(token, {
-            mime: mime,
-            data: data
-        })
+        } catch (error) {
+            console.error(error)
+            console.log(`下载云空间文件 /drive/v1/medias/${token}/download 失败！`)
+        }
+
     }
     return name ? (token + "_" + name) : (token + ext.value)
 }

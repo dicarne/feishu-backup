@@ -12,7 +12,7 @@ let { app_id, app_secret } = router.params
 let code = router.query.code as string
 const message = useMessage()
 const dialog = useDialog()
-const feishu = new FeishuService((fname: string) => {
+const feishu = new FeishuService(message, (fname: string) => {
     downloadingList.value.push(fname)
 })
 feishu.dialog = dialog
