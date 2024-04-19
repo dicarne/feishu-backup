@@ -369,7 +369,7 @@ export class FeishuService {
 
         let name = this.zipfileName(filename, zip, ".json")
         let mdname = this.zipfileName(filename, zip, ".md")
-        zip.file(name, JSON.stringify({ node: fileobj, type: "docx" }))
+        zip.file(name, JSON.stringify({ node: fileobj, type: "doc" }))
         try {
             zip.file(mdname, (await convert.convert(await this.userAccess(), zip, fileobj)).file)
         } catch (error) {
@@ -525,7 +525,7 @@ export class FeishuService {
     }
 
     async get_wiki_nodes_root(space_id: string, page_token?: string): Promise<NodeRecord[]> {
-        let r = await axios.get(feishu_api(`/wiki/v2/spaces/${space_id}/nodes?page_size=50${page_token ? '&page_token=' + page_token : ''}`), {
+        let r = await axios.get(feishu_api(`/wiki/v2/spaces/${space_id}/nodes?page_size=10${page_token ? '&page_token=' + page_token : ''}`), {
             headers: {
                 "Authorization": `Bearer ${await this.userAccess()}`
             }
@@ -539,7 +539,7 @@ export class FeishuService {
     }
 
     async get_wiki_nodes(space_id: string, parent_node: string, page_token?: string): Promise<NodeRecord[]> {
-        let r = await axios.get(feishu_api(`/wiki/v2/spaces/${space_id}/nodes?page_size=50&parent_node_token=${parent_node}${page_token ? '&page_token=' + page_token : ''}`), {
+        let r = await axios.get(feishu_api(`/wiki/v2/spaces/${space_id}/nodes?page_size=10&parent_node_token=${parent_node}${page_token ? '&page_token=' + page_token : ''}`), {
             headers: {
                 "Authorization": `Bearer ${await this.userAccess()}`
             }
@@ -547,7 +547,7 @@ export class FeishuService {
         const d = r.data.data as WikiNodeList
         let list = d.items
         if (d.has_more) {
-            list = [...list, ...await this.get_wiki_nodes(space_id, d.page_token)]
+            list = [...list, ...await this.get_wiki_nodes(space_id, parent_node, d.page_token)]
         }
         return list
     }
