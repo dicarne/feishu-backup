@@ -6,6 +6,7 @@ import { stringNullIsDefault } from "../lib/stringUtil";
 import { ConvertDocxToMD } from "./convert_docx";
 import localforage from "localforage";
 import { DialogApiInjection } from "naive-ui/es/dialog/src/DialogProvider";
+import { MessageApiInjection } from "naive-ui/es/message/src/MessageProvider";
 
 export const config = { ProxyAPI: false }
 
@@ -130,9 +131,11 @@ const tmp = localforage.createInstance({
 
 export class FeishuService {
     convert = true
+    message: MessageApiInjection
     downloadingCallback?: (file: string) => void
-    constructor(downloadingCallback?: (file: string) => void) {
+    constructor(message: MessageApiInjection, downloadingCallback?: (file: string) => void) {
         this.downloadingCallback = downloadingCallback
+        this.message = message
         this.user_expires_in = JSON.parse(window.localStorage.getItem("user_expires_in") ?? "0")
     }
     dialog?: DialogApiInjection
@@ -275,21 +278,31 @@ export class FeishuService {
         }
         return blocks
     }
-    async get_docx(doc_token: string): Promise<any[]> {
-        let r = await axios.get(feishu_api(`/docx/v1/documents/${doc_token}/blocks`), {
-            headers: {
-                "Authorization": `Bearer ${await this.userAccess()}`
-            }
-        })
+    async get_docx(doc_token: string): Promise<any[] | null> {
+        if (!doc_token) return null
 
-        const d = r.data.data
-        let blocks = d.items
-        if (d.has_more) {
-            const page_token = d.page_token
-            const next = await this.get_docx_next(doc_token, page_token)
-            blocks = [...blocks, ...next]
+        try {
+            let r = await axios.get(feishu_api(`/docx/v1/documents/${doc_token}/blocks`), {
+                headers: {
+                    "Authorization": `Bearer ${await this.userAccess()}`
+                }
+            })
+
+            const d = r.data.data
+            let blocks = d.items
+            if (d.has_more) {
+                const page_token = d.page_token
+                const next = await this.get_docx_next(doc_token, page_token)
+                blocks = [...blocks, ...next]
+            }
+            return blocks
+        } catch (error) {
+            console.error(error)
+            console.log(`获取文档 ${doc_token} 失败！`)
+            this.message.error(`获取文档 ${doc_token} 失败！该文档可能已被删除或者出现网络错误。`)
+            return null
         }
-        return blocks
+
     }
 
     async get_file(token: string, zip: JSZip, name?: string) {
@@ -325,7 +338,12 @@ export class FeishuService {
                 })
                 return r
             }
-            await task();
+            try {
+                await task();
+            } catch (error) {
+                console.error(error)
+                console.log(`下载文件 ${token} 失败！`)
+            }
         }
 
         return name ? (token + "_" + name) : (token + ext)
@@ -381,6 +399,7 @@ export class FeishuService {
 
     async _save_docx(token: string, filename: string, zip: JSZip) {
         const content = await this.get_docx(token)
+        if (!content) return
         let name = this.zipfileName(filename, zip, ".json")
         let mdname = this.zipfileName(filename, zip, ".md")
         zip.file(name, JSON.stringify({ nodes: content, type: "docx" }))

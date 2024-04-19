@@ -37,7 +37,7 @@ export class Converter {
         return ret
     }
 
-    
+
 
     convertele(ele: any, file: StringFile) {
         if (ele['type'] == 'textRun') {
@@ -158,23 +158,29 @@ export class Converter {
                 ext = ".jpg"
             zip.folder("assets")?.file(id + ext, c.data)
         } else {
-            let r = await axios.get(feishu_api(`/drive/v1/medias/${id}/download`),
-                {
-                    headers: { 'Authorization': 'Bearer ' + token },
-                    responseType: 'arraybuffer'
-                })
-            let mime = r.headers['content-type']
+            try {
+                let r = await axios.get(feishu_api(`/drive/v1/medias/${id}/download`),
+                    {
+                        headers: { 'Authorization': 'Bearer ' + token },
+                        responseType: 'arraybuffer'
+                    })
+                let mime = r.headers['content-type']
 
-            if (mime == 'image/png')
-                ext = ".png"
-            else if (mime == 'image/jpeg' || mime == 'image/jpg')
-                ext = ".jpg"
-            const data = new Uint8Array(r.data)
-            zip.folder("assets")?.file(id + ext, data)
-            await this.tmp.setItem(id, {
-                mime: mime,
-                data: data
-            })
+                if (mime == 'image/png')
+                    ext = ".png"
+                else if (mime == 'image/jpeg' || mime == 'image/jpg')
+                    ext = ".jpg"
+                const data = new Uint8Array(r.data)
+                zip.folder("assets")?.file(id + ext, data)
+                await this.tmp.setItem(id, {
+                    mime: mime,
+                    data: data
+                })
+            } catch (error) {
+                console.error(error)
+                console.log(`下载云空间文件 /drive/v1/medias/${token}/download 失败！`)
+            }
+
         }
 
         return id + ext
