@@ -346,6 +346,13 @@ async function convertDocxToMD(ctx0: ConvertContextArg, parent: string, blocks: 
                 md += await convertDocxToMD(ctx, ele.block_id, blocks, zip, access, { parent_prefix: "> " }) + "\n"
                 break
             }
+            case BlockType.callout: {
+                continue_block_type = BlockType.callout
+                const e = ele
+                md += "\n> [!note]\n"
+                md += await convertDocxToMD(ctx, ele.block_id, blocks, zip, access, { parent_prefix: "> " }) + "\n"
+                break
+            }
             case BlockType.image: {
                 const e = ele as DocxImage
                 const filename = await downloadAsset(ctx, e.image.token, access, zip)
@@ -504,7 +511,7 @@ enum BlockType {
     equation,
     todo,           //
     bitable,
-    callout,
+    callout = 19,
     chat_card,
     diagram,
     divider,           //
