@@ -1,8 +1,10 @@
 package main
 
 import (
+	"embed"
 	"flag"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -13,6 +15,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+//go:embed dist/*
+var webDir embed.FS
+
 func main() {
 	r := gin.Default()
 
@@ -22,13 +27,15 @@ func main() {
 	config.AllowHeaders = []string{"Authorization"}
 	r.Use(cors.New(config))
 
+	staticFp, _ := fs.Sub(webDir, "dist")
+
 	debug := flag.Bool("debug", false, "用于本地Web开发")
 	flag.Parse()
 
 	if *debug {
 		r.Any("/feishu-backup/*proxyPath", proxydev)
 	} else {
-		r.Static("/feishu-backup", "./dist")
+		r.StaticFS("/feishu-backup", http.FS(staticFp))
 	}
 	r.Any("/api/feishu/*proxyPath", proxy)
 	r.GET("/ping", func(ctx *gin.Context) {
