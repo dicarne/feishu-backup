@@ -10,6 +10,47 @@
 ### 零、创建应用
 在[飞书开放平台](https://open.feishu.cn)创建一个企业应用，名字随便写。在应用后台的权限管理中找到云文档相关的权限，都点上。然后发布版本，通过，应用上线。（注意，权限是需要审批的！！想偷偷摸摸搬走文档恐怕不太可行！！除非你是个人用户，自己就是自己企业的领导！！）
 
+参考权限设置（在权限页导入json）：
+```json
+{
+  "scopes": {
+    "tenant": [
+      "board:whiteboard:node:read",
+      "contact:contact.base:readonly",
+      "contact:contact:readonly_as_app",
+      "contact:user.employee_id:readonly",
+      "docs:doc:readonly",
+      "docx:document",
+      "docx:document:readonly",
+      "drive:drive",
+      "drive:drive.metadata:readonly",
+      "drive:drive:readonly",
+      "drive:file",
+      "drive:file:readonly",
+      "im:message.group_at_msg:readonly",
+      "im:message.p2p_msg:readonly",
+      "im:message:send_as_bot",
+      "wiki:wiki"
+    ],
+    "user": [
+      "board:whiteboard:node:read",
+      "contact:contact.base:readonly",
+      "contact:contact:readonly_as_app",
+      "contact:user.employee_id:readonly",
+      "docs:doc:readonly",
+      "docx:document",
+      "docx:document:readonly",
+      "drive:drive",
+      "drive:drive.metadata:readonly",
+      "drive:drive:readonly",
+      "drive:file",
+      "drive:file:readonly",
+      "wiki:wiki"
+    ]
+  }
+}
+```
+
 ### 一、配置
 从Release下载最新版本，解压到你喜欢的地方。打开里面的可执行文件，会自动打开网页。首次打开时，需要填写`App ID`和`App Secret`（这些能在应用的凭证管理中找到），然后点击计算按钮。
 
